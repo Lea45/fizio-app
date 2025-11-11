@@ -1,28 +1,40 @@
-type Props = {
-  onAdminClick: () => void;
-  onClientClick: () => void;
-};
+import React from "react";
 
-export default function StartScreen({ onAdminClick, onClientClick }: Props) {
+interface StartScreenProps {
+  onClientClick: () => void;
+  onAdminClick: () => void;
+}
+
+const StartScreen: React.FC<StartScreenProps> = ({
+  onClientClick,
+  onAdminClick,
+}) => {
   return (
     <div className="start-wrap">
-      <div className="start-inner">
-        <div className="brand-card">
-          <h1 className="brand-title">Fizikalna terapija Zoran Peršić</h1>
-          <p className="brand-subtitle">
-            Kineziterapijske vježbe <br /> by Marko Čakan
-          </p>
-        </div>
+      <div className="brand-card">
+        <h1 className="brand-title">Fizikalna terapija Zoran Peršić</h1>
+        <p className="brand-subtitle">Kineziterapijske vježbe by Marko Čakan</p>
+      </div>
 
-        <div className="start-grid">
-          <button className="card-btn client" onClick={onClientClick}>
-            KLIJENT
-          </button>
-          <button className="card-btn admin" onClick={onAdminClick}>
-            ADMIN
-          </button>
-        </div>
+      <div className="start-grid">
+        <button
+          type="button"
+          className="card-btn client"
+          onClick={onClientClick}
+        >
+          KLIJENT
+        </button>
+
+        <button
+          type="button"
+          className="card-btn admin"
+          onClick={onAdminClick}
+        >
+          ADMIN
+        </button>
       </div>
     </div>
   );
-}
+};
+
+export default StartScreen;

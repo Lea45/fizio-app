@@ -1,122 +1,93 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import "../styles/login-fizio.css";
 
-type LoginProps = {
+type LoginFizioProps = {
   onLoginSuccess: () => void;
   onBackToHome: () => void;
-  mode: "client" | "admin";
 };
 
-const normalizePhone = (str: string) =>
-  str.replace(/\s+/g, "").replace(/^00/, "+").replace(/^\+?385/, "385");
-
-export default function Login({ onLoginSuccess, onBackToHome, mode }: LoginProps) {
-  const [inputValue, setInputValue] = useState("");
+export default function LoginFizio({
+  onLoginSuccess,
+  onBackToHome,
+}: LoginFizioProps) {
+  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    const raw = inputValue.trim();
-    if (!raw) {
-      setStatus(
-        mode === "admin"
-          ? "⛔ Unesite lozinku."
-          : "⛔ Unesite broj telefona."
-      );
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("");
+
+    if (!phone.trim()) {
+      setStatus("⛔ Unesite broj telefona.");
       return;
     }
-
-    // ADMIN LOGIN (placeholder logika – prilagodi po potrebi)
-    if (mode === "admin") {
-      if (raw === "admin123") {
-        setStatus("✅ Dobrodošli, admin!");
-        onLoginSuccess();
-      } else {
-        setStatus("⛔ Pogrešna lozinka.");
-      }
-      return;
-    }
-
-    // CLIENT LOGIN
-    const normalized = normalizePhone(raw);
 
     try {
-      setLoading(true);
-      setStatus("🔍 Provjera…");
-
       const q = query(
         collection(db, "users"),
-        where("phone", "==", normalized),
+        where("phone", "==", phone.trim()),
         where("active", "==", true)
       );
       const snap = await getDocs(q);
 
       if (!snap.empty) {
         const userDoc = snap.docs[0];
-        const userData = userDoc.data() as { name?: string };
+        const userData = userDoc.data();
 
-        localStorage.setItem("fizio:phone", normalized);
-        localStorage.setItem("fizio:userId", userDoc.id);
-        localStorage.setItem("fizio:userName", userData?.name ?? "");
+        localStorage.setItem("phone", phone.trim());
+        localStorage.setItem("userId", userDoc.id);
+        if (userData.name) {
+          localStorage.setItem("userName", userData.name as string);
+        }
 
-        setStatus("✅ Dobrodošao/la!");
+        setStatus("✅ Uspješna prijava.");
         onLoginSuccess();
       } else {
-        setStatus("⛔ Nemaš pristup. Obrati se treneru/trenerici.");
+        setStatus("⛔ Nemaš pristup. Obrati se terapeutu.");
       }
     } catch (error) {
       console.error("Greška pri prijavi:", error);
-      setStatus("⛔ Greška pri prijavi. Pokušajte ponovno.");
-    } finally {
-      setLoading(false);
+      setStatus("⛔ Greška pri prijavi. Pokušaj ponovno.");
     }
   };
 
-return (
-  <div className={`login-page ${mode}`}>
-    <div className="login-role-heading">
-      {mode === "admin" ? "ADMIN" : "KLIJENT"}
+  return (
+    <div className="login-page client">
+      <div className="login-container">
+        <h2 className="login-role-heading">KLIJENT</h2>
+
+
+        <form onSubmit={handleLogin} className="login-form">
+        
+          <input
+            type="tel"
+            className="login-input"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              setStatus("");
+            }}
+            placeholder="Unesi broj telefona (385...)"
+          />
+          <button type="submit" className="login-button">
+            Prijava
+          </button>
+        </form>
+
+        {status && (
+          <p
+            className={
+              status.startsWith("✅") ? "status-success" : "status-error"
+            }
+          >
+            {status}
+          </p>
+        )}
+      </div>
+      <button onClick={onBackToHome} className="back-btn">
+          ← Nazad
+        </button>
     </div>
-
-    <div className="login-container">
-      <input
-        type={mode === "admin" ? "password" : "text"}
-        placeholder={mode === "admin" ? "Unesi lozinku" : "+385..."}
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && !loading && handleLogin()}
-        className="login-input"
-      />
-
-      <button
-        onClick={handleLogin}
-        className="login-button"
-        disabled={loading}
-      >
-        {loading ? "Prijava..." : "Prijavi se"}
-      </button>
-
-      <button
-        onClick={onBackToHome}
-        className="login-back-button"
-        disabled={loading}
-      >
-        Natrag na početnu
-      </button>
-
-      {status && (
-        <p
-          className={
-            status.startsWith("✅") ? "status-success" : "status-error"
-          }
-        >
-          {status}
-        </p>
-      )}
-    </div>
-  </div>
-);
-
+  );
 }

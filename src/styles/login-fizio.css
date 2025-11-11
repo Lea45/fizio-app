@@ -135,6 +135,7 @@ body {
   font-size: 1rem;
   transition: border-color .2s, box-shadow .2s, transform .05s;
   outline: none;
+  margin-bottom: 1rem;
 }
 
 .login-input::placeholder {
@@ -572,4 +573,30 @@ button.active-tab {
     transparent
   );
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.75);
+}
+
+/* =========================================
+   GUMB "NAZAD" ISPOD KARTICE
+   ========================================= */
+
+.back-btn {
+  margin-top: 1.4rem;
+  align-self: center;          /* centrirano ispod kartice */
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.25s ease, transform 0.18s ease, opacity 0.2s ease;
+}
+
+.back-btn:hover {
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.back-btn:active {
+  transform: translateY(0);
+  opacity: 0.8;
 }

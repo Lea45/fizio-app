@@ -1,43 +1,72 @@
 import { useState } from "react";
 import StartScreen from "./components/StartScreen";
-import Login from "./components/LoginFizio";
+import LoginFizio from "./components/LoginFizio";
+import AdminLogin from "./components/AdminLogin";
 
-type View = "start" | "client" | "admin";
+type View =
+  | "start"
+  | "clientLogin"
+  | "clientDashboard"
+  | "adminLogin"
+  | "adminDashboard";
+
+function ClientDashboard({ onLogout }: { onLogout: () => void }) {
+  return (
+    <div className="login-wrapper">
+      <h2>Klijentska aplikacija</h2>
+      <p>Uspješno ste prijavljeni kao klijent. 👌</p>
+      <button onClick={onLogout} className="back-btn">
+        Odjava
+      </button>
+    </div>
+  );
+}
+
+function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+  return (
+    <div className="login-wrapper">
+      <h2>Admin sučelje</h2>
+      <p>Uspješno ste prijavljeni kao admin. 🔐</p>
+      <button onClick={onLogout} className="back-btn">
+        Odjava
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const [view, setView] = useState<View>("start");
 
-  if (view === "client") {
-    return (
-      <Login
-        mode="client"
-        onLoginSuccess={() => {
-          // ovdje ide dalje (client dashboard)
-          console.log("Klijent prijavljen");
-        }}
-        onBackToHome={() => setView("start")}
-      />
-    );
-  }
+  switch (view) {
+    case "clientLogin":
+      return (
+        <LoginFizio
+          onLoginSuccess={() => setView("clientDashboard")}
+          onBackToHome={() => setView("start")}
+        />
+      );
 
-  if (view === "admin") {
-    return (
-      <Login
-        mode="admin"
-        onLoginSuccess={() => {
-          // ovdje ide dalje (admin dashboard)
-          console.log("Admin prijavljen");
-        }}
-        onBackToHome={() => setView("start")}
-      />
-    );
-  }
+    case "adminLogin":
+      return (
+        <AdminLogin
+          onAdminLoginSuccess={() => setView("adminDashboard")}
+          onBackToHome={() => setView("start")}
+        />
+      );
 
-  // početni ekran
-  return (
-    <StartScreen
-      onClientClick={() => setView("client")}
-      onAdminClick={() => setView("admin")}
-    />
-  );
+    case "clientDashboard":
+      return <ClientDashboard onLogout={() => setView("start")} />;
+
+    case "adminDashboard":
+      return <AdminDashboard onLogout={() => setView("start")} />;
+
+    case "start":
+    default:
+      return (
+        <StartScreen
+          onClientClick={() => setView("clientLogin")}
+          onAdminClick={() => setView("adminLogin")}
+        />
+      );
+  }
 }
