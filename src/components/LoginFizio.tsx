@@ -44,7 +44,7 @@ export default function LoginFizio({
         setStatus("✅ Uspješna prijava.");
         onLoginSuccess();
       } else {
-        setStatus("⛔ Nemaš pristup. Obrati se terapeutu.");
+        setStatus("⛔ Nemaš pristup.");
       }
     } catch (error) {
       console.error("Greška pri prijavi:", error);

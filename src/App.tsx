@@ -2,6 +2,7 @@ import { useState } from "react";
 import StartScreen from "./components/StartScreen";
 import LoginFizio from "./components/LoginFizio";
 import AdminLogin from "./components/AdminLogin";
+import ScheduleAdmin from "./components/ScheduleAdmin"; // ⬅️ novi admin panel
 
 type View =
   | "start"
@@ -22,17 +23,6 @@ function ClientDashboard({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  return (
-    <div className="login-wrapper">
-      <h2>Admin sučelje</h2>
-      <p>Uspješno ste prijavljeni kao admin. 🔐</p>
-      <button onClick={onLogout} className="back-btn">
-        Odjava
-      </button>
-    </div>
-  );
-}
 
 export default function App() {
   const [view, setView] = useState<View>("start");
@@ -49,7 +39,7 @@ export default function App() {
     case "adminLogin":
       return (
         <AdminLogin
-          onAdminLoginSuccess={() => setView("adminDashboard")}
+          onAdminLoginSuccess={() => setView("adminDashboard")} // ✅ koristi stare propove
           onBackToHome={() => setView("start")}
         />
       );
@@ -58,7 +48,7 @@ export default function App() {
       return <ClientDashboard onLogout={() => setView("start")} />;
 
     case "adminDashboard":
-      return <AdminDashboard onLogout={() => setView("start")} />;
+      return <ScheduleAdmin />;
 
     case "start":
     default:
