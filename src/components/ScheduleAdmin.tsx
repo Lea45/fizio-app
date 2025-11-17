@@ -185,7 +185,7 @@ export default function ScheduleAdmin() {
 
       return {
         ...session,
-        date: formatDate(realDate), // sada stvarni datum npr. "14.05.2025."
+        date: formatDate(realDate), 
       };
     });
 
@@ -450,7 +450,7 @@ export default function ScheduleAdmin() {
         <div className="modal-overlay">
           <div className="modal">
             <p>
-              Jesi li sigurna da želiš obrisati termin:
+              Jesi li siguran da želiš obrisati termin:
               <br />
               <strong>
                 {formatDay(confirmDelete.date)}, {confirmDelete.time}
@@ -475,7 +475,7 @@ export default function ScheduleAdmin() {
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
           <div className="modal">
             <p>
-              Jesi li sigurna da želiš povući defaultni raspored?
+              Jesi li siguran da želiš povući defaultni raspored?
               <br />
               Svi trenutni draft termini bit će obrisani.
             </p>
@@ -503,7 +503,7 @@ export default function ScheduleAdmin() {
         <div className="modal-overlay">
           <div className="modal">
             <p>
-              Jesi li sigurna da želiš objaviti novi tjedan?
+              Jesi li siguran da želiš objaviti novi tjedan?
               <br />
               Time se brišu svi trenutačni termini koji su vidljivi klijentima.
             </p>
@@ -546,7 +546,7 @@ export default function ScheduleAdmin() {
         <div className="modal-overlay">
           <div className="modal">
             <p>
-              Jesi li sigurna da želiš onemogućiti sve termine za dan:
+              Jesi li siguran da želiš onemogućiti sve termine za dan:
               <br />
               <strong>{formatDay(confirmDisableDay)}</strong>?
             </p>
