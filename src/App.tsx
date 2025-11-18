@@ -2,7 +2,7 @@ import { useState } from "react";
 import StartScreen from "./components/StartScreen";
 import LoginFizio from "./components/LoginFizio";
 import AdminLogin from "./components/AdminLogin";
-import ScheduleAdmin from "./components/ScheduleAdmin"; // ⬅️ novi admin panel
+import AdminDashboard from "./components/AdminDashboard"; // ⬅️ NOVO umjesto ScheduleAdmin
 
 type View =
   | "start"
@@ -23,7 +23,6 @@ function ClientDashboard({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-
 export default function App() {
   const [view, setView] = useState<View>("start");
 
@@ -39,7 +38,7 @@ export default function App() {
     case "adminLogin":
       return (
         <AdminLogin
-          onAdminLoginSuccess={() => setView("adminDashboard")} // ✅ koristi stare propove
+          onAdminLoginSuccess={() => setView("adminDashboard")}
           onBackToHome={() => setView("start")}
         />
       );
@@ -48,7 +47,7 @@ export default function App() {
       return <ClientDashboard onLogout={() => setView("start")} />;
 
     case "adminDashboard":
-      return <ScheduleAdmin />;
+      return <AdminDashboard />; // ⬅️ SAD IDE DASHBOARD S TABOVIMA
 
     case "start":
     default:
