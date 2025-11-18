@@ -363,8 +363,8 @@ export default function ScheduleAdmin() {
         <>
           <div className="draft-controls-card">
             <div className="week-datepicker-wrapper">
-              <label style={{ display: "block", marginBottom: "0.5rem" }}>
-                Početak tjedna
+              <label style={{ display: "block", marginBottom: "0.5rem", fontFamily: "monospace" }}>
+                Tjedan od-do
               </label>
               <DatePicker
                 selected={startDate}
