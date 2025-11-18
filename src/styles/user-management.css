@@ -5,7 +5,7 @@
 .fizio-user-container {
   max-width: 960px;
   margin: 0 auto;
-  padding: 2.5rem 1rem 1rem;
+  padding: 0.5rem 1rem 1rem;
   color: var(--text);
   font-family: system-ui, -apple-system, sans-serif;
 }
@@ -123,40 +123,91 @@
   gap: 0.5rem;
 }
 
+/* Obriši – jasniji tekst, manje zaobljeno */
 .danger-btn {
   padding: 0.45rem 1rem;
-  border-radius: 999px;
-  background: rgba(231,76,60,0.25);
-  border: 1px solid rgba(231,76,60,0.55);
-  color: #ffd2d2;
+  border-radius: 12px;
+  background: rgba(231,76,60,0.35);              /* svjetlija pozadina */
+  border: 1px solid rgba(231,76,60,0.8);         /* jači border */
+  color: #ffe5e5;                                /* svjetliji tekst */
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
   transition: 0.18s ease;
 }
 
 .danger-btn:hover {
   background: #e74c3c;
-  border-color: #ff8a80;
-  color: white;
+  border-color: #ff9e9e;
+  color: #ffffff;
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(231,76,60,0.55);
 }
 
+/* Detalji – tirkizni, svijetli tekst, manje zaobljeno */
 .details-btn {
   padding: 0.45rem 1rem;
-  border-radius: 999px;
-  background: rgba(14,124,134,0.22);
-  border: 1px solid rgba(14,124,134,0.7);
-  color: var(--text);
+  border-radius: 12px;
+  background: rgba(14,124,134,0.32);            /* svjetlija pozadina */
+  border: 1px solid rgba(14,124,134,0.9);       /* jači border */
+  color: #e6f7fa;                                /* svjetlo plavkasto-bijelo */
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
   transition: 0.18s ease;
 }
 
 .details-btn:hover {
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-color: rgba(217,119,6,0.8);
+  border-color: rgba(217,119,6,0.9);
   color: var(--ink);
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(14,124,134,0.5);
 }
+
+/* BAZA za sve user gumbe */
+.user-btn {
+  padding: 0.45rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,0.7);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.18s ease;
+  background: rgba(11,18,32,0.95);
+  color: var(--text);
+}
+
+/* Obriši */
+.user-btn-danger {
+  background: rgba(231,76,60,0.35);
+  border-color: rgba(231,76,60,0.85);
+  color: #ffe5e5;
+}
+
+.user-btn-danger:hover {
+  background: #e74c3c;
+  border-color: #ff9e9e;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(231,76,60,0.55);
+}
+
+/* Detalji */
+.user-btn-secondary {
+  background: rgba(14,124,134,0.35);
+  border-color: rgba(14,124,134,0.9);
+  color: #e6f7fa;
+}
+
+.user-btn-secondary:hover {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: rgba(217,119,6,0.9);
+  color: var(--ink);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(14,124,134,0.5);
+}
+
 
 /* ============================ */
 /* LOAD MORE BUTTON             */

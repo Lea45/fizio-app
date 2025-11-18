@@ -238,19 +238,21 @@ export default function UserManagement() {
               </div>
 
               <div className="fizio-user-buttons">
-                <button
-                  onClick={() => confirmDeleteUser(user)}
-                  className="fizio-btn-danger"
-                >
-                  Obriši
-                </button>
-                <button
-                  onClick={() => openUserDetails(user)}
-                  className="fizio-btn-secondary"
-                >
-                  Detalji
-                </button>
-              </div>
+  <button
+    onClick={() => confirmDeleteUser(user)}
+    className="user-btn user-btn-danger"
+  >
+    Obriši
+  </button>
+
+  <button
+    onClick={() => openUserDetails(user)}
+    className="user-btn user-btn-secondary"
+  >
+    Detalji
+  </button>
+</div>
+
             </div>
           ))}
         </div>

@@ -22,7 +22,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           className="card-btn client"
           onClick={onClientClick}
         >
-          KLIJENT
+          REZERVACIJA TERMINA
         </button>
 
         <button
