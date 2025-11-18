@@ -185,7 +185,7 @@ export default function ScheduleAdmin() {
 
       return {
         ...session,
-        date: formatDate(realDate), 
+        date: formatDate(realDate),
       };
     });
 
@@ -660,8 +660,7 @@ export default function ScheduleAdmin() {
                 {view === "draft" && (
                   <>
                     <button
-                      className="add-button-small"
-                      style={{ marginBottom: "0.5rem" }}
+                      className="add-button-small note-info"
                       onClick={() => {
                         setNoteModalDate(date);
                         setNoteInput(dailyNotes[date] || "");
@@ -669,22 +668,16 @@ export default function ScheduleAdmin() {
                     >
                       📝 Dodaj opis
                     </button>
+
                     <button
-                      className="add-button-small"
-                      style={{
-                        marginBottom: "0.5rem",
-                        backgroundColor: "#e74c3c",
-                        color: "white",
-                      }}
+                      className="add-button-small danger"
                       onClick={() => {
                         if (!disabledDays.includes(date)) {
                           setConfirmDisableDay(date);
                         }
                       }}
                     >
-                      {disabledDays.includes(date)
-                        ? "♻️ Vrati dan"
-                        : "🚫 Onemogući dan"}
+                      🚫 Onemogući dan
                     </button>
 
                     {dailyNotes[date] && (
