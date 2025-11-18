@@ -308,7 +308,7 @@ export default function ScheduleAdmin() {
 
   return (
     <div className="schedule-admin-container">
-      <h2>Upravljanje Terminima</h2>
+      <h1>Upravljanje Terminima</h1>
 
       {isLoading && (
         <div className="spinner-overlay">

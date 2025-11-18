@@ -12,12 +12,20 @@
   backdrop-filter: blur(12px);
 }
 
+h1{
+  font-size: 2.2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--text);
+  letter-spacing: 0.08em;
+}
+
 /* Naslov */
 .schedule-admin-container h2 {
   font-size: 2.2rem;
   text-align: center;
   margin-bottom: 2rem;
-  color: var(--text);
+  color: black;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -38,7 +46,7 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--ring);
   background: rgba(11,18,32,0.9);
-  color: var(--text-dim);
+  color: black;
   font-weight: 600;
   font-size: 0.9rem;
   display: flex;
@@ -69,6 +77,23 @@
   transform: translateY(-1px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.55);
 }
+
+/* Manji naslov mjeseca u react-datepicker */
+.react-datepicker__current-month {
+  font-size: 1rem !important; /* smanji naslov */
+  font-weight: 600 !important;
+}
+
+/* Manja slova u headeru (pon, uto, sri...) */
+.react-datepicker__day-name {
+  font-size: 0.7rem !important;
+}
+
+/* Dan koji je danas / selektiran */
+.react-datepicker__day--selected {
+  font-size: 0.85rem !important;
+}
+
 
 @media (max-width: 400px) {
   .schedule-admin-container .tab-switcher {
