@@ -414,16 +414,25 @@ button.active-tab {
   box-sizing: border-box;
 }
 
+/* SAMO za velike ekrane */
 @media (min-width: 640px) {
   .start-grid {
     flex-direction: row;
     justify-content: center;
     align-items: center;
+    gap: 1.2rem;
+    max-width: 520px;
+  }
+
+  .card-btn {
+    flex: 0 0 230px;   /* oba gumba iste širine */
+    width: 230px;
   }
 }
 
+
 .card-btn {
-  flex: 1;
+  flex: 1 1 0;      /* 🔥 ovo osigurava da oba gumba imaju ISTU širinu */
   min-width: 180px;
   width: 100%;
   text-align: center;
@@ -438,6 +447,7 @@ button.active-tab {
   box-shadow: var(--elev-1);
   transition: transform .1s ease, box-shadow .25s ease, border-color .2s ease, filter .2s ease, background .25s ease;
 }
+
 
 .card-btn:hover {
   transform: translateY(-2px);
