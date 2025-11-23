@@ -35,19 +35,23 @@ export default function UserManagement() {
   const [newUserPhone, setNewUserPhone] = useState("");
 
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showManual, setShowManual] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const [additionalVisits, setAdditionalVisits] = useState("");
   const [existingVisits, setExistingVisits] = useState(0);
-  const [validUntil, setValidUntil] = useState("");
 
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const [lastVisible, setLastVisible] =
-    useState<QueryDocumentSnapshot | null>(null);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(
+    null
+  );
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  // prikaz +8 / +12 / ručni unos
+  const [showAddOptions, setShowAddOptions] = useState(false);
 
   /* ============================
           FETCH USERS
@@ -166,26 +170,63 @@ export default function UserManagement() {
 
     setSelectedUser(user);
     setExistingVisits(data?.remainingVisits ?? 0);
-    setValidUntil(data?.validUntil || "");
-    setAdditionalVisits("0");
+    setAdditionalVisits("");
+    setShowManual(false);
+    setShowConfirm(false);
+    setShowAddOptions(false);
   };
 
   const handleConfirmEntry = async () => {
     if (!selectedUser) return;
     const numberAdd = Number(additionalVisits || "0");
 
+    const next = existingVisits + numberAdd;
+
     await updateDoc(doc(db, "users", selectedUser.id), {
-      remainingVisits: existingVisits + numberAdd,
-      validUntil,
+      remainingVisits: next,
     });
+
+    // odmah osvježi prikaz u detaljima
+    setExistingVisits(next);
+    setSelectedUser((prev) =>
+      prev ? { ...prev, remainingVisits: next } : prev
+    );
 
     setSuccessMessage(
       `${numberAdd >= 0 ? "Dodali" : "Oduzeli"} ste ${Math.abs(
         numberAdd
       )} dolazaka za ${selectedUser.name}.`
     );
+
     setShowSuccess(true);
     setShowConfirm(false);
+    setShowManual(false);
+    // možeš ovdje ostaviti ili maknuti, kako voliš:
+    setShowAddOptions(false);
+  };
+
+  // Tekst za confirm popup
+  const numberAdd = Number(additionalVisits || "0");
+
+  let confirmText = "";
+  if (numberAdd > 0) {
+    confirmText = `dodati ${numberAdd} dolazaka`;
+  } else if (numberAdd < 0) {
+    confirmText = `oduzeti ${Math.abs(numberAdd)} dolazaka`;
+  } else {
+    confirmText = "spremiti bez promjene dolazaka";
+  }
+
+  // Brzi odabir paketa +8 / +12
+  const handleQuickAdd = (value: number) => {
+    setAdditionalVisits(String(value));
+    setShowConfirm(true);
+  };
+
+  // Otvori ručni unos
+  const openManualInput = () => {
+    setAdditionalVisits("");
+    setShowManual(true);
   };
 
   /* ============================
@@ -238,21 +279,20 @@ export default function UserManagement() {
               </div>
 
               <div className="fizio-user-buttons">
-  <button
-    onClick={() => confirmDeleteUser(user)}
-    className="user-btn user-btn-danger"
-  >
-    Obriši
-  </button>
+                <button
+                  onClick={() => confirmDeleteUser(user)}
+                  className="user-btn user-btn-danger"
+                >
+                  Obriši
+                </button>
 
-  <button
-    onClick={() => openUserDetails(user)}
-    className="user-btn user-btn-secondary"
-  >
-    Detalji
-  </button>
-</div>
-
+                <button
+                  onClick={() => openUserDetails(user)}
+                  className="user-btn user-btn-secondary"
+                >
+                  Detalji
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -273,18 +313,14 @@ export default function UserManagement() {
         <div className="fizio-overlay">
           <div className="fizio-modal">
             <p>
-              Želiš obrisati korisnika{" "}
-              <strong>{userToDelete.name}</strong>?
+              Želiš obrisati korisnika <strong>{userToDelete.name}</strong>?
             </p>
 
             <div className="fizio-modal-buttons">
               <button className="yes-btn" onClick={handleDeleteUserConfirmed}>
                 Da
               </button>
-              <button
-                className="no-btn"
-                onClick={() => setUserToDelete(null)}
-              >
+              <button className="no-btn" onClick={() => setUserToDelete(null)}>
                 Ne
               </button>
             </div>
@@ -292,46 +328,118 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* MODAL – detalji / izmjena dolazaka */}
+      {/* MODAL – detalji / dodavanje dolazaka */}
       {selectedUser && (
         <div className="fizio-overlay">
           <div className="fizio-modal">
             <h3>{selectedUser.name}</h3>
 
             <p>
-              Preostali dolasci: <strong>{existingVisits}</strong>
+              Preostali dolasci:{" "}
+              <strong
+                style={{
+                  color: existingVisits > 0 ? "#22c55e" : "#f97373",
+                }}
+              >
+                {existingVisits}
+              </strong>
             </p>
 
-            {validUntil && (
-              <p>
-                Vrijedi do: <strong>{validUntil}</strong>
-              </p>
+            {!showAddOptions ? (
+              // FAZA 1 – samo veliki gumb
+              <button
+                type="button"
+                className="manual-visit-main-btn"
+                onClick={() => setShowAddOptions(true)}
+              >
+                Dodaj dolaske
+              </button>
+            ) : (
+              // FAZA 2 – NEMA više teksta, samo 8 / 12 / ručni
+              <>
+                <div
+                  className="quick-visits-container"
+                  style={{ marginTop: "1rem" }}
+                >
+                  <button
+                    type="button"
+                    className="quick-visit-btn"
+                    onClick={() => handleQuickAdd(8)}
+                  >
+                    +8 dolazaka
+                  </button>
+
+                  <button
+                    type="button"
+                    className="quick-visit-btn"
+                    onClick={() => handleQuickAdd(12)}
+                  >
+                    +12 dolazaka
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="manual-visit-main-btn"
+                  onClick={openManualInput}
+                  style={{ marginTop: "0.8rem" }}
+                >
+                  Ručni unos dolazaka
+                </button>
+              </>
             )}
 
-            <label>Promjena dolazaka:</label>
+            <div className="fizio-modal-buttons">
+              <button
+                className="no-btn"
+                onClick={() => {
+                  setSelectedUser(null);
+                  setShowAddOptions(false);
+                  setShowManual(false);
+                  setShowConfirm(false);
+                }}
+              >
+                Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL – ručni unos dolazaka */}
+      {showManual && selectedUser && (
+        <div className="fizio-overlay">
+          <div className="fizio-modal">
+            <h3>Ručni unos dolazaka</h3>
+            <p>
+              Za korisnika <strong>{selectedUser.name}</strong> unesi broj
+              dolazaka (može biti + ili -):
+            </p>
+
             <input
               type="number"
               value={additionalVisits}
               onChange={(e) => setAdditionalVisits(e.target.value)}
-            />
-
-            <label>Novi datum valjanosti:</label>
-            <input
-              type="date"
-              value={validUntil}
-              onChange={(e) => setValidUntil(e.target.value)}
+              placeholder="npr. 1 ili -1"
             />
 
             <div className="fizio-modal-buttons">
               <button
                 className="yes-btn"
-                onClick={() => setShowConfirm(true)}
+                onClick={() => {
+                  if (!additionalVisits) return;
+                  setShowManual(false);
+                  setShowConfirm(true);
+                }}
               >
-                Spremi
+                Dalje
               </button>
               <button
                 className="no-btn"
-                onClick={() => setSelectedUser(null)}
+                onClick={() => {
+                  setShowManual(false);
+                  setAdditionalVisits("");
+                }}
               >
                 Odustani
               </button>
@@ -341,22 +449,19 @@ export default function UserManagement() {
       )}
 
       {/* MODAL – potvrda spremanja promjene dolazaka */}
-      {showConfirm && (
+      {showConfirm && selectedUser && (
         <div className="fizio-overlay">
           <div className="fizio-modal">
             <p>
-              Primijeniti promjenu dolazaka za{" "}
-              <strong>{selectedUser?.name}</strong>?
+              Jesi li siguran da želiš {confirmText} za{" "}
+              <strong>{selectedUser.name}</strong>?
             </p>
 
             <div className="fizio-modal-buttons">
               <button className="yes-btn" onClick={handleConfirmEntry}>
                 Da
               </button>
-              <button
-                className="no-btn"
-                onClick={() => setShowConfirm(false)}
-              >
+              <button className="no-btn" onClick={() => setShowConfirm(false)}>
                 Ne
               </button>
             </div>
@@ -374,12 +479,11 @@ export default function UserManagement() {
               <button
                 className="yes-btn"
                 onClick={() => {
-                  setShowSuccess(false);
-                  setSelectedUser(null);
+                  setShowSuccess(false); // zatvori samo success popup
+                  setShowConfirm(false);
+                  setShowManual(false);
                   setAdditionalVisits("");
-                  setExistingVisits(0);
-                  setValidUntil("");
-                  fetchUsers();
+                  fetchUsers(); // da se lista iza osvježi
                 }}
               >
                 U redu
