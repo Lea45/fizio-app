@@ -25,12 +25,12 @@ export default function AdminLogin({
           const data = docSnap.data();
           setAdminCode(data.code);
         } else {
-          console.error("Nema admin koda u bazi!");
-          setStatus("⛔ Admin kod nije postavljen u bazi.");
+          console.error("Nema admin lozinke u bazi!");
+          setStatus("⛔ Admin lozinka nije postavljen u bazi.");
         }
       } catch (error) {
-        console.error("Greška kod dohvaćanja admin koda:", error);
-        setStatus("⛔ Greška pri dohvaćanju admin koda.");
+        console.error("Greška kod dohvaćanja admin lozinke:", error);
+        setStatus("⛔ Greška pri dohvaćanju admin lozinke.");
       }
     };
 
@@ -40,7 +40,7 @@ export default function AdminLogin({
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminCode) {
-      setStatus("⛔ Admin kod nije učitan.");
+      setStatus("⛔ Admin lozinka nije učitana.");
       return;
     }
 
@@ -49,7 +49,7 @@ export default function AdminLogin({
       localStorage.setItem("admin", "true");
       onAdminLoginSuccess();
     } else {
-      setStatus("⛔ Pogrešan kod.");
+      setStatus("⛔ Pogrešna lozinka.");
     }
   };
 
