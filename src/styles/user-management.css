@@ -289,7 +289,6 @@
 /* ============================ */
 /*      MODAL (shared style)    */
 /* ============================ */
-
 .fizio-overlay {
   position: fixed;
   inset: 0;
@@ -311,6 +310,7 @@
   color: var(--text);
   text-align: center;
 }
+
 
 .fizio-modal h3 {
   background: linear-gradient(135deg, var(--accent), var(--primary));

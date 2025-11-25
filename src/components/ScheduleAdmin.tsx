@@ -40,6 +40,8 @@ export default function ScheduleAdmin() {
   );
   const [reservations, setReservations] = useState<any[]>([]);
 
+  const [addSessionDate, setAddSessionDate] = useState<string | null>(null);
+
   const [labelInput, setLabelInput] = useState("");
   const [currentLabel, setCurrentLabel] = useState("");
   const [newTime, setNewTime] = useState("");
@@ -446,6 +448,47 @@ export default function ScheduleAdmin() {
 
       {toastMessage && <div className="custom-toast">{toastMessage}</div>}
 
+{addSessionDate && (
+  <div className="modal-overlay">
+    <div className="modal">
+      <h4>Dodaj termin za {formatDay(addSessionDate)}</h4>
+      <input
+        type="text"
+        placeholder="08:00 - 09:00"
+        value={newTime}
+        onChange={(e) => setNewTime(e.target.value)}
+        style={{ display: "block", margin: "0.5rem 0", padding: "0.4rem" }}
+      />
+      <input
+        type="number"
+        min={1}
+        placeholder="Broj mjesta"
+        value={newSlots}
+        onChange={(e) => setNewSlots(Number(e.target.value))}
+        style={{ display: "block", marginBottom: "0.5rem", padding: "0.4rem" }}
+      />
+      <button
+        onClick={() => {
+          addSession(addSessionDate);
+          setAddSessionDate(null);
+        }}
+        style={{ marginRight: "0.5rem" }}
+      >
+        Spremi
+      </button>
+      <button
+        onClick={() => {
+          setAddSessionDate(null);
+          setNewTime("");
+          setNewSlots(5);
+        }}
+      >
+        Odustani
+      </button>
+    </div>
+  </div>
+)}
+
       {confirmDelete && (
         <div className="modal-overlay">
           <div className="modal">
@@ -724,55 +767,14 @@ export default function ScheduleAdmin() {
                   view === "sessions") && (
                   <>
                     <button
-                      className="add-button-small"
-                      onClick={() => setShowModal(date)}
-                      style={{ marginTop: "0.5rem" }}
-                    >
-                      <FaPlusCircle style={{ marginRight: "0.4rem" }} />
-                      Dodaj termin
-                    </button>
+  className="add-button-small"
+  onClick={() => setAddSessionDate(date)}
+  style={{ marginTop: "0.5rem" }}
+>
+  <FaPlusCircle style={{ marginRight: "0.4rem" }} />
+  Dodaj termin
+</button>
 
-                    {showModal === date && (
-                      <div className="modal-overlay">
-                        <div className="modal">
-                          <h4>Dodaj termin za {formatDay(date)}</h4>
-                          <input
-                            type="text"
-                            placeholder="08:00 - 09:00"
-                            value={newTime}
-                            onChange={(e) => setNewTime(e.target.value)}
-                            style={{
-                              display: "block",
-                              margin: "0.5rem 0",
-                              padding: "0.4rem",
-                            }}
-                          />
-                          <input
-                            type="number"
-                            min={1}
-                            placeholder="Broj mjesta"
-                            value={newSlots}
-                            onChange={(e) =>
-                              setNewSlots(Number(e.target.value))
-                            }
-                            style={{
-                              display: "block",
-                              marginBottom: "0.5rem",
-                              padding: "0.4rem",
-                            }}
-                          />
-                          <button
-                            onClick={() => addSession(date)}
-                            style={{ marginRight: "0.5rem" }}
-                          >
-                            Spremi
-                          </button>
-                          <button onClick={() => setShowModal(null)}>
-                            Odustani
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
               </div>
