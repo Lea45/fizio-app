@@ -1,0 +1,357 @@
+:root {
+  --sched-bg: #020617;
+  --sched-surface: #050816;
+  --sched-surface-soft: #020617;
+  --sched-border-subtle: rgba(148, 163, 184, 0.25);
+  --sched-border-strong: rgba(148, 163, 184, 0.6);
+  --sched-accent: #0ea5e9;
+  --sched-success: #22c55e;
+  --sched-warning: #eab308;
+  --sched-text-main: #e5e7eb;
+  --sched-text-muted: #9ca3af;
+}
+
+/* ================================================================== */
+/* WRAPPER – centrirano, malo “air-space” oko svega                   */
+/* ================================================================== */
+
+.schedule-wrapper {
+  margin: 0 auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: center; /* centriraj sve */
+}
+
+/* ================================================================== */
+/* “Tjedan” label – mali, diskretni bar, ne ogromna kartica           */
+/* ================================================================== */
+
+.schedule-label {
+  width: 92%;
+  max-width: 480px;
+  background: radial-gradient(
+      900px 500px at 0% 0%,
+      rgba(56, 189, 248, 0.18),
+      transparent 55%
+    ),
+    linear-gradient(135deg, #020617, #020617);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  padding: 0.75rem 1rem;
+  color: var(--sched-text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9); /* lebdeće */
+}
+
+.schedule-label-title {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  opacity: 0.85;
+}
+
+.schedule-label-title svg {
+  color: var(--sched-accent);
+}
+
+.schedule-label-sub {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* ================================================================== */
+/* BLOK PO DANU – svaki dan je jedna čista sekcija                    */
+/* ================================================================== */
+.day-card {
+  width: 92%;
+  max-width: 480px;
+  margin: 0.4rem auto 0;
+  background: transparent;
+  border-radius: 16px;
+  position: relative;
+}
+
+/* KAD JE DAN OTVOREN – cijeli blok izgleda kao jedna kartica */
+.day-card.open {
+  background: radial-gradient(
+      900px 500px at 0% 0%,
+      rgba(56, 189, 248, 0.12),
+      transparent 55%
+    ),
+    #020617;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+  padding: 0.5rem 0.5rem 0.7rem;
+
+}
+
+/* HEADER S DANOM – povezan stil s gornjom karticom */
+
+.day-header {
+  width: 100%;
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  border-radius: 10px;
+  border: 2px solid rgba(22, 58, 47, 0.9);
+  padding: 0.65rem 0.95rem;
+  cursor: pointer;
+  color: black;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.18s ease, border-color 0.18s ease,
+    transform 0.12s ease, box-shadow 0.18s ease;
+}
+
+/* kad je dan otvoren – malo svjetliji header da znaš gdje si */
+.day-card.open .day-header {
+    background: rgba(50, 153, 144, 0.95);
+  border-color: rgba(148, 163, 184, 0.8);
+}
+
+/* suptilan highlight pri hoveru */
+
+.day-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(49, 156, 202, 0.18);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.day-header:hover {
+  border-color: var(--sched-border-strong);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.85);
+  transform: translateY(-1px);
+}
+
+.day-header:hover::before {
+  opacity: 1;
+}
+
+.day-chevron-icon {
+  font-size: 1.05rem;
+  opacity: 0.75;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.day-header:hover .day-chevron-icon {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* Kratka napomena za dan – diskretni info blok */
+
+.daily-note-client {
+  margin: 0.45rem 0 0.25rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--sched-text-muted);
+  font-size: 0.84rem;
+}
+
+/* ================================================================== */
+/* JEDAN TERMIN – horizontalna “row kartica”                          */
+/* ================================================================== */
+
+.session-card {
+  margin-top: 0.55rem;
+  background: #105570;
+  border-radius: 10px;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  padding: 0.75rem 0.9rem 0.7rem;
+  color: var(--sched-text-main);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  animation: sessionFadeIn 0.16s ease forwards;
+}
+
+/* Gornji red – vrijeme lijevo, popunjenost desno */
+
+.session-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+}
+
+.session-time-icon {
+  font-size: 1rem;
+  color: var(--sched-accent);
+}
+
+.session-spots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--sched-text-muted);
+  font-size: 0.85rem;
+}
+
+.session-spots-icon {
+  font-size: 0.95rem;
+}
+
+/* Status (rezervirano / čekanje) */
+
+.status-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-rezervirano {
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.6);
+}
+
+.status-cekanje {
+  background: rgba(234, 179, 8, 0.12);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.6);
+}
+
+.status-icon {
+  font-size: 0.85rem;
+}
+
+/* ================================================================== */
+/* GUMBI – smireni, ali jasno naglašeni                               */
+/* ================================================================== */
+
+.reserve-button,
+.cancel-button {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease,
+    transform 0.12s ease, border-color 0.18s ease;
+}
+
+/* REZERVIRAJ – naglašen, ali bez “gaming” gradijenta */
+
+.reserve-button {
+  background: #0f766e;
+  color: #ecfeff;
+  border-color: rgba(45, 212, 191, 0.8);
+  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.45);
+}
+
+.reserve-button:hover:not(:disabled) {
+  background: #14b8a6;
+  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.55);
+  transform: translateY(-1px);
+}
+
+/* Kada je termin pun (gumb “Lista čekanja”) */
+
+.reserve-button.full {
+  background: #020617;
+  color: var(--sched-text-muted);
+  border-color: var(--sched-border-subtle);
+  box-shadow: none;
+}
+
+/* OTKAZIVANJE */
+
+.cancel-button {
+  background: #111827;
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.9);
+}
+
+.cancel-button:hover:not(:disabled) {
+  background: #7f1d1d;
+  color: #fee2e2;
+  box-shadow: 0 8px 20px rgba(127, 29, 29, 0.65);
+  transform: translateY(-1px);
+}
+
+/* DISABLED – sivo i mirno */
+
+.reserve-button:disabled,
+.cancel-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ================================================================== */
+/* LOADING                                                            */
+/* ================================================================== */
+
+.schedule-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+}
+
+.schedule-loading img {
+  width: 90px;
+  height: 90px;
+}
+
+/* ANIMACIJA DOLASKA KARTICA */
+
+@keyframes sessionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* MOBILNO FINO PODEŠAVANJE */
+
+@media (max-width: 420px) {
+  .schedule-wrapper {
+    padding-inline: 0;
+  }
+
+  .session-info {
+    font-size: 0.85rem;
+  }
+
+  .schedule-label {
+    padding-inline: 0.8rem;
+  }
+}
