@@ -26,8 +26,7 @@ export default function LoginFizio({
     try {
       const q = query(
         collection(db, "users"),
-        where("phone", "==", phone.trim()),
-        where("active", "==", true)
+        where("phone", "==", phone.trim())
       );
       const snap = await getDocs(q);
 
@@ -55,7 +54,7 @@ export default function LoginFizio({
   return (
     <div className="login-page client">
       <div className="login-container">
-        <h2 className="login-role-heading">KLIJENT</h2>
+        <h2 className="login-role-heading">REZERVACIJA TERMINA</h2>
 
         <form onSubmit={handleLogin} className="login-form">
           <input

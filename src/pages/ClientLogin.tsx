@@ -26,7 +26,7 @@ const ClientLogin: React.FC<ClientLoginProps> = ({
     }
 
     try {
-      const clientsRef = collection(db, "clients");
+      const clientsRef = collection(db, "users"); // ⬅️ promjena
       const q = query(clientsRef, where("phone", "==", trimmed));
       const snap = await getDocs(q);
 
@@ -48,7 +48,7 @@ const ClientLogin: React.FC<ClientLoginProps> = ({
 
   return (
     <div className="client-login-wrapper">
-      <h2 className="login-title">KLIJENT</h2>
+      <h2 className="login-title">REZERVACIJA TERMINA</h2>
       <div className="login-underline" />
       <form className="login-card" onSubmit={handleSubmit}>
         <input
