@@ -127,6 +127,10 @@ body {
   backdrop-filter: blur(8px);
 
   animation: fadeInStart 0.4s ease both;
+
+  align-items: center;
+  text-align: center;
+  padding-top: 2.4rem;
 }
 
 .login-input {
