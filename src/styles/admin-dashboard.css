@@ -44,16 +44,21 @@
 
 /* ODJAVA */
 .logout-button {
-  margin: 2rem auto 0;
-  display: block;
   padding: 0.7rem 1.4rem;
   border-radius: var(--radius-sm);
-  background: rgba(217,119,6,0.2);
+  
+  background: rgba(212, 75, 75, 0.658);
   color: var(--text);
-  border: 1px solid rgba(217,119,6,0.45);
+  border: 1px solid rgba(8, 1, 1, 0.45);
+
   cursor: pointer;
   font-weight: 600;
   transition: .15s;
+
+  width: 95%;
+  max-width: 930px;         /* ✔ ista širina kao datumi i gumbi */
+  margin: 2rem auto 0;      /* ✔ centrirano */
+  display: block;           /* ✔ da se max-width primijeni */
 }
 
 .logout-button:hover {
@@ -61,3 +66,4 @@
   color: var(--ink);
   box-shadow: var(--elev-2);
 }
+

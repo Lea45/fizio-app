@@ -388,7 +388,7 @@ export default function StatusManagement() {
             </div>
           );
         })}
-
+  <div className="status-divider"></div>
     </div>
     
   );

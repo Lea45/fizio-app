@@ -50,15 +50,15 @@
 
 .status-divider {
   width: 100%;
-  max-width: 530px;
-  height: 1px;
+  max-width: 930px;
+  height: 2px;
   background: linear-gradient(
     90deg,
     transparent,
     rgba(56, 190, 243, 0.45),
     transparent
   );
-  margin: 1.2rem auto 1.4rem;
+  margin: 1.5rem auto 1.4rem;
 }
 
 
