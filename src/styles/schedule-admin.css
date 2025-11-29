@@ -163,27 +163,41 @@
   margin: 0 auto;
 }
 
-/* Jedan dan – kartica */
+/* Jedan dan – kartica (unutrašnjost) */
 .schedule-admin-container .session-group {
   position: relative;
-  background:
-     rgba(217,119,6,0.18), transparent 55%;
-  border: 1px solid rgba(148,163,184,0.55);
+  background: rgba(11,18,32,0.96);
   border-radius: 18px;
   padding: 1.1rem 1rem 1rem;
   box-shadow: 0 16px 40px rgba(0,0,0,0.65);
   overflow: visible;
 }
 
-/* Zlatna linija gore */
+/* Zlatni GRADIENT OKVIR oko cijele kartice */
 .schedule-admin-container .session-group::before {
   content: "";
   position: absolute;
   inset: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), rgba(14,124,134,0.8));
-  opacity: 0.9;
+  padding: 2px; /* debljina gradijentnog okvira */
+  border-radius: 18px;
+
+  background: linear-gradient(
+    135deg,
+    var(--accent),
+    rgba(14,124,134,0.8)
+  );
+
+  /* maska koja čini okvir “šupljim” iznutra */
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+
+  pointer-events: none;
+  z-index: 1;
 }
+
 
 /* Dan u tjednu */
 .schedule-admin-container .session-group h4 {
