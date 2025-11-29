@@ -1,0 +1,53 @@
+.fizio-client-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem;
+}
+
+.fizio-client-tabs .tab-button {
+  width: 100%;
+  max-width: 150px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+
+  backdrop-filter: blur(10px);
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease,
+    transform 0.18s ease, box-shadow 0.25s ease;
+}
+
+.fizio-client-tabs .tab-button svg {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.fizio-client-tabs .tab-button:hover {
+  transform: translateY(-2px);
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(226, 232, 240, 0.6);
+}
+
+.fizio-client-tabs .tab-button.active {
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  color: #021318;
+  border-color: rgba(248, 250, 252, 0.9);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.7);
+  transform: translateY(-2px);
+}
+
+.fizio-client-tabs .tab-button.active svg {
+  opacity: 1;
+}
