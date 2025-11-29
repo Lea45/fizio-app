@@ -259,6 +259,9 @@ export default function UserManagement() {
           </button>
         </div>
 
+        
+      <div className="status-divider"></div>
+
         {/* Search */}
         <div className="fizio-search-box">
           <input
@@ -268,6 +271,7 @@ export default function UserManagement() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
 
         {/* Lista korisnika */}
         <div className="fizio-user-list">

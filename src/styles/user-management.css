@@ -23,6 +23,7 @@
   -webkit-text-fill-color: transparent;
 }
 
+
 /* ============================ */
 /*     INPUTI ZA DODAVANJE      */
 /* ============================ */
@@ -42,24 +43,38 @@
   background: rgba(11,18,32,0.9);
   color: var(--text);
   font-size: 0.9rem;
-  width: 220px;
+  width: 100%;
 }
 
 .fizio-user-inputs button {
   padding: 0.75rem 1.4rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--accent), var(--primary));
-  border: 1px solid rgba(217,119,6,0.85);
+  border-radius: 10px;
+   background: rgba(43, 255, 244, 0.2);
+  color: var(--text);
+  border: 2px solid rgba(6, 168, 217, 0.45);
   box-shadow: 0 10px 25px rgba(0,0,0,0.65);
-  color: var(--ink);
   cursor: pointer;
   font-weight: 600;
   transition: 0.18s ease;
+  width: 100%;
 }
 
 .fizio-user-inputs button:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 32px rgba(217,119,6,0.45);
+}
+
+.status-divider {
+  width: 100%;
+  max-width: 530px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(56, 190, 243, 0.45),
+    transparent
+  );
+  margin: 1.2rem auto 1.4rem;
 }
 
 /* ============================ */
@@ -74,12 +89,13 @@
 
 .fizio-search-box input {
   padding: 0.75rem 1rem;
-  width: 260px;
+  width: 100%;
   border-radius: 10px;
   border: 1px solid rgba(148,163,184,0.6);
   background: rgba(11,18,32,0.9);
   color: var(--text);
   font-size: 0.9rem;
+
 }
 
 /* ============================ */
