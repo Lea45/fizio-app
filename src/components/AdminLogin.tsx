@@ -56,14 +56,9 @@ export default function AdminLogin({
   return (
     <div className="login-page admin">
       <div className="login-container">
-        
-
-       <h2 className="login-role-heading">ADMIN</h2>
-
-    
+        <h2 className="login-role-heading">ADMIN</h2>
 
         <form onSubmit={handleLogin} className="login-form">
-        
           <input
             type="password"
             className="login-input"
@@ -90,8 +85,8 @@ export default function AdminLogin({
         )}
       </div>
       <button onClick={onBackToHome} className="back-btn">
-          ← Nazad
-        </button>
+        ← Nazad
+      </button>
     </div>
   );
 }

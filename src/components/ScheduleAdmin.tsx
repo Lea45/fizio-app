@@ -180,7 +180,7 @@ export default function ScheduleAdmin() {
     };
 
     const updatedSessions = templateSessions.map((session) => {
-      const dan = session.date; // očekuje se npr. "PONEDJELJAK"
+      const dan = session.date;
       const offset = danOffset[dan];
       const realDate = new Date(startDate);
       realDate.setDate(realDate.getDate() + offset);
@@ -224,16 +224,13 @@ export default function ScheduleAdmin() {
       draftTerms.map((term) => addDoc(collection(db, "sessions"), term))
     );
 
-    // 🔁 Kopiraj opise iz draftScheduleNotes u sessionsNotes
     const notesSnap = await getDocs(collection(db, "draftScheduleNotes"));
     const currentNotes = await getDocs(collection(db, "sessionsNotes"));
 
-    // Obrisi sve stare sessionsNotes
     await Promise.all(
       currentNotes.docs.map((d) => deleteDoc(doc(db, "sessionsNotes", d.id)))
     );
 
-    // Dodaj nove
     await Promise.all(
       notesSnap.docs.map((d) =>
         setDoc(doc(db, "sessionsNotes", d.id), { text: d.data().text })
@@ -365,7 +362,13 @@ export default function ScheduleAdmin() {
         <>
           <div className="draft-controls-card">
             <div className="week-datepicker-wrapper">
-              <label style={{ display: "block", marginBottom: "0.5rem", fontFamily: "monospace" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontFamily: "monospace",
+                }}
+              >
                 Tjedan od-do
               </label>
               <DatePicker
@@ -425,67 +428,70 @@ export default function ScheduleAdmin() {
               </div>
 
               <div>{currentLabel}</div>
-               <div
-          
-          >
-            <button
-              className="publish-button"
-              onClick={() => setConfirmPublish(true)}
-            >
-              <FaCheckCircle style={{ marginRight: "0.4rem" }} />
-              Objavi raspored
-            </button>
-          </div>
+              <div>
+                <button
+                  className="publish-button"
+                  onClick={() => setConfirmPublish(true)}
+                >
+                  <FaCheckCircle style={{ marginRight: "0.4rem" }} />
+                  Objavi raspored
+                </button>
+              </div>
             </div>
-
           )}
-
-    
         </>
       )}
 
       {toastMessage && <div className="custom-toast">{toastMessage}</div>}
 
-{addSessionDate && (
-  <div className="modal-overlay">
-    <div className="modal">
-      <h4>Dodaj termin za {formatDay(addSessionDate)}</h4>
-      <input
-        type="text"
-        placeholder="08:00 - 09:00"
-        value={newTime}
-        onChange={(e) => setNewTime(e.target.value)}
-        style={{ display: "block", margin: "0.5rem 0", padding: "0.4rem" }}
-      />
-      <input
-        type="number"
-        min={1}
-        placeholder="Broj mjesta"
-        value={newSlots}
-        onChange={(e) => setNewSlots(Number(e.target.value))}
-        style={{ display: "block", marginBottom: "0.5rem", padding: "0.4rem" }}
-      />
-      <button
-        onClick={() => {
-          addSession(addSessionDate);
-          setAddSessionDate(null);
-        }}
-        style={{ marginRight: "0.5rem" }}
-      >
-        Spremi
-      </button>
-      <button
-        onClick={() => {
-          setAddSessionDate(null);
-          setNewTime("");
-          setNewSlots(5);
-        }}
-      >
-        Odustani
-      </button>
-    </div>
-  </div>
-)}
+      {addSessionDate && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h4>Dodaj termin za {formatDay(addSessionDate)}</h4>
+            <input
+              type="text"
+              placeholder="08:00 - 09:00"
+              value={newTime}
+              onChange={(e) => setNewTime(e.target.value)}
+              style={{
+                display: "block",
+                margin: "0.5rem 0",
+                padding: "0.4rem",
+              }}
+            />
+            <input
+              type="number"
+              min={1}
+              placeholder="Broj mjesta"
+              value={newSlots}
+              onChange={(e) => setNewSlots(Number(e.target.value))}
+              style={{
+                display: "block",
+                marginBottom: "0.5rem",
+                padding: "0.4rem",
+              }}
+            />
+            <button
+              onClick={() => {
+                addSession(addSessionDate);
+                setAddSessionDate(null);
+              }}
+              style={{ marginRight: "0.5rem" }}
+            >
+              Spremi
+            </button>
+            <button
+              onClick={() => {
+                setAddSessionDate(null);
+                setNewTime("");
+                setNewSlots(5);
+              }}
+            >
+              Odustani
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <div className="modal-overlay">
@@ -765,14 +771,13 @@ export default function ScheduleAdmin() {
                   view === "sessions") && (
                   <>
                     <button
-  className="add-button-small"
-  onClick={() => setAddSessionDate(date)}
-  style={{ marginTop: "0.5rem" }}
->
-  <FaPlusCircle style={{ marginRight: "0.4rem" }} />
-  Dodaj termin
-</button>
-
+                      className="add-button-small"
+                      onClick={() => setAddSessionDate(date)}
+                      style={{ marginTop: "0.5rem" }}
+                    >
+                      <FaPlusCircle style={{ marginRight: "0.4rem" }} />
+                      Dodaj termin
+                    </button>
                   </>
                 )}
               </div>

@@ -16,25 +16,25 @@
 .tab-button {
   padding: 0.75rem 1.4rem;
   border-radius: var(--radius);
-  background: rgba(14,124,134,0.2);
-  border: 1px solid rgba(148,163,184,0.4);
+  background: rgba(14, 124, 134, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.4);
   color: var(--text);
-  
+
   cursor: pointer;
   font-weight: 600;
-  transition: .2s;
+  transition: 0.2s;
 }
 
 .tab-button:hover {
-  background: rgba(14,124,134,0.35);
+  background: rgba(14, 124, 134, 0.35);
   transform: translateY(-2px);
 }
 
 /* AKTIVNI TAB */
 .tab-button.active {
-  background: linear-gradient(135deg, var(--accent), rgba(14,124,134,0.9));
+  background: linear-gradient(135deg, var(--accent), rgba(14, 124, 134, 0.9));
   color: var(--ink);
-  border-color: rgba(217,119,6,0.8);
+  border-color: rgba(217, 119, 6, 0.8);
   box-shadow: var(--elev-1);
 }
 
@@ -46,19 +46,19 @@
 .logout-button {
   padding: 0.7rem 1.4rem;
   border-radius: var(--radius-sm);
-  
+
   background: rgba(212, 75, 75, 0.658);
   color: var(--text);
   border: 1px solid rgba(8, 1, 1, 0.45);
 
   cursor: pointer;
   font-weight: 600;
-  transition: .15s;
+  transition: 0.15s;
 
   width: 95%;
-  max-width: 930px;         /* ✔ ista širina kao datumi i gumbi */
-  margin: 2rem auto 0;      /* ✔ centrirano */
-  display: block;           /* ✔ da se max-width primijeni */
+  max-width: 930px;
+  margin: 2rem auto 0;
+  display: block;
 }
 
 .logout-button:hover {
@@ -66,4 +66,3 @@
   color: var(--ink);
   box-shadow: var(--elev-2);
 }
-

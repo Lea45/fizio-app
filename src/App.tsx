@@ -2,7 +2,7 @@ import { useState } from "react";
 import StartScreen from "./components/StartScreen";
 import LoginFizio from "./components/LoginFizio";
 import AdminLogin from "./components/AdminLogin";
-import AdminDashboard from "./components/AdminDashboard"; // ⬅️ NOVO umjesto ScheduleAdmin
+import AdminDashboard from "./components/AdminDashboard";
 
 type View =
   | "start"
@@ -47,7 +47,7 @@ export default function App() {
       return <ClientDashboard onLogout={() => setView("start")} />;
 
     case "adminDashboard":
-      return <AdminDashboard />; // ⬅️ SAD IDE DASHBOARD S TABOVIMA
+      return <AdminDashboard />;
 
     case "start":
     default:

@@ -52,8 +52,8 @@ button:focus-visible {
 }
 
 .popup-overlay {
-  position: fixed; /* vezan za ekran, ne za sadržaj */
-  inset: 0;        /* isto kao top:0; right:0; bottom:0; left:0 */
+  position: fixed; 
+  inset: 0;        
   background: rgba(0,0,0,0.6);
   backdrop-filter: blur(3px);
   display: flex;

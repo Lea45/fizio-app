@@ -25,11 +25,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           REZERVACIJA TERMINA
         </button>
 
-        <button
-          type="button"
-          className="card-btn admin"
-          onClick={onAdminClick}
-        >
+        <button type="button" className="card-btn admin" onClick={onAdminClick}>
           ADMIN
         </button>
       </div>

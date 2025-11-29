@@ -50,12 +50,7 @@ export default function UserManagement() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // prikaz +8 / +12 / ručni unos
   const [showAddOptions, setShowAddOptions] = useState(false);
-
-  /* ============================
-          FETCH USERS
-  ============================ */
 
   const docToUser = (d: any): User => ({
     id: d.id,
@@ -96,10 +91,6 @@ export default function UserManagement() {
     fetchUsers();
   }, []);
 
-  /* ============================
-          SEARCH
-  ============================ */
-
   const searchUsers = async (term: string) => {
     const t = term.trim().toLowerCase();
     if (!t) {
@@ -125,10 +116,6 @@ export default function UserManagement() {
     searchUsers(searchTerm);
   }, [searchTerm]);
 
-  /* ============================
-          ADD USER
-  ============================ */
-
   const handleAddUser = async () => {
     if (!newUserName.trim() || !newUserPhone.trim()) return;
 
@@ -144,10 +131,6 @@ export default function UserManagement() {
     fetchUsers();
   };
 
-  /* ============================
-        DELETE USER
-  ============================ */
-
   const confirmDeleteUser = (user: User) => {
     setUserToDelete(user);
   };
@@ -158,10 +141,6 @@ export default function UserManagement() {
     setUserToDelete(null);
     fetchUsers();
   };
-
-  /* ============================
-      OPEN DETAILS / UPDATE VISITS
-  ============================ */
 
   const openUserDetails = async (user: User) => {
     const ref = doc(db, "users", user.id);
@@ -186,7 +165,6 @@ export default function UserManagement() {
       remainingVisits: next,
     });
 
-    // odmah osvježi prikaz u detaljima
     setExistingVisits(next);
     setSelectedUser((prev) =>
       prev ? { ...prev, remainingVisits: next } : prev
@@ -201,11 +179,10 @@ export default function UserManagement() {
     setShowSuccess(true);
     setShowConfirm(false);
     setShowManual(false);
-    // možeš ovdje ostaviti ili maknuti, kako voliš:
+
     setShowAddOptions(false);
   };
 
-  // Tekst za confirm popup
   const numberAdd = Number(additionalVisits || "0");
 
   let confirmText = "";
@@ -228,10 +205,6 @@ export default function UserManagement() {
     setAdditionalVisits("");
     setShowManual(true);
   };
-
-  /* ============================
-            RENDER
-  ============================ */
 
   return (
     <>
@@ -259,8 +232,7 @@ export default function UserManagement() {
           </button>
         </div>
 
-        
-      <div className="status-divider"></div>
+        <div className="status-divider"></div>
 
         {/* Search */}
         <div className="fizio-search-box">
@@ -271,7 +243,6 @@ export default function UserManagement() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
 
         {/* Lista korisnika */}
         <div className="fizio-user-list">
@@ -350,7 +321,6 @@ export default function UserManagement() {
             </p>
 
             {!showAddOptions ? (
-              // FAZA 1 – samo veliki gumb
               <button
                 type="button"
                 className="manual-visit-main-btn"
@@ -359,7 +329,6 @@ export default function UserManagement() {
                 Dodaj dolaske
               </button>
             ) : (
-              // FAZA 2 – NEMA više teksta, samo 8 / 12 / ručni
               <>
                 <div
                   className="quick-visits-container"
@@ -483,11 +452,11 @@ export default function UserManagement() {
               <button
                 className="yes-btn"
                 onClick={() => {
-                  setShowSuccess(false); // zatvori samo success popup
+                  setShowSuccess(false);
                   setShowConfirm(false);
                   setShowManual(false);
                   setAdditionalVisits("");
-                  fetchUsers(); // da se lista iza osvježi
+                  fetchUsers();
                 }}
               >
                 U redu

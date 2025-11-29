@@ -43,7 +43,6 @@ export default function StatusManagement() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoMessage, setInfoMessage] = useState("");
 
-  // 🔁 redoslijed dana (kao u Gioii)
   const weekdayOrder = [
     "ponedjeljak",
     "utorak",
@@ -107,9 +106,7 @@ export default function StatusManagement() {
     const date = new Date(year, month, day);
     if (isNaN(date.getTime())) return "NEPOZNAT DAN";
 
-    return date
-      .toLocaleDateString("hr-HR", { weekday: "long" })
-      .toUpperCase();
+    return date.toLocaleDateString("hr-HR", { weekday: "long" }).toUpperCase();
   };
 
   const groupedSessions = sessions.reduce(
@@ -121,7 +118,6 @@ export default function StatusManagement() {
     {}
   );
 
-  // 🔁 globalni refund za sve s liste čekanja kojima je termin prošao
   const handleRefundConfirmed = async () => {
     try {
       const now = new Date();
@@ -146,7 +142,6 @@ export default function StatusManagement() {
       }
 
       for (const res of waitlistToRefund) {
-        // nađi user-a po broju mobitela
         const userQuery = query(
           collection(db, "users"),
           where("phone", "==", res.phone)
@@ -162,7 +157,6 @@ export default function StatusManagement() {
           });
         }
 
-        // označi rezervaciju kao refundiranu
         const resRef = doc(db, "reservations", res.id);
         await updateDoc(resRef, { refunded: true });
       }
@@ -240,21 +234,15 @@ export default function StatusManagement() {
               >
                 Da
               </button>
-              <button
-                className="no"
-                onClick={() => setShowConfirmModal(false)}
-              >
+              <button className="no" onClick={() => setShowConfirmModal(false)}>
                 Ne
               </button>
             </div>
           </div>
         </div>
-
-        
       )}
-      
 
-      {/* Dani u tjednu sortirani kao u Gioii */}
+      {}
       {!loading &&
         weekdayOrder.map((weekday) => {
           const entry = Object.entries(groupedSessions).find(
@@ -314,9 +302,8 @@ export default function StatusManagement() {
                           {expandedSessionId === session.id && (
                             <div className="reservation-box">
                               {/* Rezervirani */}
-                              {related.filter(
-                                (r) => r.status === "rezervirano"
-                              ).length > 0 && (
+                              {related.filter((r) => r.status === "rezervirano")
+                                .length > 0 && (
                                 <>
                                   <div
                                     style={{
@@ -340,15 +327,15 @@ export default function StatusManagement() {
                               )}
 
                               {/* Lista čekanja */}
-                              {related.filter(
-                                (r) => r.status === "cekanje"
-                              ).length > 0 && (
+                              {related.filter((r) => r.status === "cekanje")
+                                .length > 0 && (
                                 <>
                                   <hr
                                     style={{
                                       margin: "10px 0",
                                       border: "none",
-                                      borderTop: "1px solid rgba(148,163,184,0.4)",
+                                      borderTop:
+                                        "1px solid rgba(148,163,184,0.4)",
                                     }}
                                   />
                                   <div
@@ -388,9 +375,7 @@ export default function StatusManagement() {
             </div>
           );
         })}
-  <div className="status-divider"></div>
+      <div className="status-divider"></div>
     </div>
-    
   );
-
 }

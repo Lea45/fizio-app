@@ -57,9 +57,7 @@ export default function LoginFizio({
       <div className="login-container">
         <h2 className="login-role-heading">KLIJENT</h2>
 
-
         <form onSubmit={handleLogin} className="login-form">
-        
           <input
             type="tel"
             className="login-input"
@@ -86,8 +84,8 @@ export default function LoginFizio({
         )}
       </div>
       <button onClick={onBackToHome} className="back-btn">
-          ← Nazad
-        </button>
+        ← Nazad
+      </button>
     </div>
   );
 }
