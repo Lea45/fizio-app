@@ -210,6 +210,8 @@ export default function StatusManagement() {
         )}
       </div>
 
+      <div className="status-divider"></div>
+
       {/* Info poruka */}
       {showInfoModal && (
         <div className="modal-overlay">
@@ -247,7 +249,10 @@ export default function StatusManagement() {
             </div>
           </div>
         </div>
+
+        
       )}
+      
 
       {/* Dani u tjednu sortirani kao u Gioii */}
       {!loading &&
@@ -384,5 +389,7 @@ export default function StatusManagement() {
           );
         })}
     </div>
+    
   );
+
 }
