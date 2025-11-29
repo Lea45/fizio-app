@@ -159,7 +159,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.7rem;
-  max-width: 650px;
+  
   margin: 0 auto;
 }
 
@@ -266,7 +266,7 @@
   border: 1px solid rgba(148,163,184,0.55);
   border-radius: var(--radius);
   padding: 1.5rem;
-  max-width: 420px;
+  width: 100%;
   margin: 1.5rem auto;
   text-align: center;
   color: var(--text);
@@ -293,7 +293,7 @@
 
 /* Aktivni tjedan */
 .schedule-admin-container .active-draft-label {
-  max-width: 420px;
+ width: 100%;
   margin: 0 auto 1rem auto;
   padding: 0.7rem 1rem;
   border-radius: 10px;
@@ -424,6 +424,7 @@
 
   .schedule-admin-container .session-group {
     padding: 1rem 0.8rem 0.9rem;
+
   }
 
   .schedule-admin-container .draft-controls-card,
@@ -436,9 +437,11 @@
 
 /* 1. Primarni gumb – OBJAVI RASPORED */
 .publish-button {
-  background: linear-gradient(135deg, var(--accent), #e9a23a);
-  color: var(--ink) !important;
-  border-color: rgba(217,119,6,0.8) !important;
+
+  color: var(--text) !important;
+ 
+   background: rgba(14,124,134,0.2) !important;
+  border: 1px solid rgba(148,163,184,0.4) !important;
 }
 
 .publish-button:hover {

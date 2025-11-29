@@ -71,9 +71,10 @@
   /* izgled kao logout-button */
   padding: 0.7rem 1.4rem;
   border-radius: var(--radius-sm);
-  background: rgba(43, 255, 244, 0.2);
+ background: rgba(14,124,134,0.2);
+  border: 1px solid rgba(148,163,184,0.4);
   color: var(--text);
-  border: 2px solid rgba(6, 168, 217, 0.45);
+  
   font-weight: 600;
   transition: 0.15s;
 }

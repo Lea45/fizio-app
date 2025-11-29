@@ -425,15 +425,8 @@ export default function ScheduleAdmin() {
               </div>
 
               <div>{currentLabel}</div>
-            </div>
-          )}
-
-          <div
-            style={{
-              maxWidth: "400px",
-              margin: "1rem auto",
-              textAlign: "center",
-            }}
+               <div
+          
           >
             <button
               className="publish-button"
@@ -443,6 +436,11 @@ export default function ScheduleAdmin() {
               Objavi raspored
             </button>
           </div>
+            </div>
+
+          )}
+
+    
         </>
       )}
 
