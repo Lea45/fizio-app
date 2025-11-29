@@ -3,6 +3,8 @@ import StartScreen from "./components/StartScreen";
 import LoginFizio from "./components/LoginFizio";
 import AdminLogin from "./components/AdminLogin";
 import AdminDashboard from "./components/AdminDashboard";
+import ClientDashboard from "./components/ClientDashboard";
+
 
 type View =
   | "start"
@@ -11,17 +13,6 @@ type View =
   | "adminLogin"
   | "adminDashboard";
 
-function ClientDashboard({ onLogout }: { onLogout: () => void }) {
-  return (
-    <div className="login-wrapper">
-      <h2>Klijentska aplikacija</h2>
-      <p>Uspješno ste prijavljeni kao klijent. 👌</p>
-      <button onClick={onLogout} className="back-btn">
-        Odjava
-      </button>
-    </div>
-  );
-}
 
 export default function App() {
   const [view, setView] = useState<View>("start");
@@ -44,7 +35,7 @@ export default function App() {
       );
 
     case "clientDashboard":
-      return <ClientDashboard onLogout={() => setView("start")} />;
+      return <ClientDashboard  />;
 
     case "adminDashboard":
       return <AdminDashboard />;
