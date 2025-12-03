@@ -558,27 +558,29 @@ export default function ScheduleCards({
                       </div>
                     ) : null}
 
-                    {reserved ? (
-                      <button
-                        className="cancel-button"
-                        disabled={isPast}
-                        onClick={() => !isPast && setConfirmCancelSession(s)}
-                      >
-                        {isPast ? "Termin je prošao" : "Otkaži termin"}
-                      </button>
-                    ) : (
-                      <button
-                        className={`reserve-button ${isFull ? "full" : ""}`}
-                        onClick={() => setConfirmSession(s)}
-                        disabled={isPast}
-                      >
-                        {isPast
-                          ? "Termin je prošao"
-                          : isFull
-                          ? "Lista čekanja"
-                          : "Rezerviraj"}
-                      </button>
-                    )}
+                   {reserved ? (
+  <button
+    className={`cancel-button ${isPast ? "reserve-button-past" : ""}`}
+    disabled={isPast}
+    onClick={() => !isPast && setConfirmCancelSession(s)}
+  >
+    {isPast ? "Termin je prošao" : "Otkaži termin"}
+  </button>
+) : (
+  <button
+    className={`reserve-button ${
+      isPast ? "reserve-button-past" : isFull ? "full" : ""
+    }`}
+    disabled={isPast}
+  >
+    {isPast
+      ? "Termin je prošao"
+      : isFull
+      ? "Lista čekanja"
+      : "Rezerviraj"}
+  </button>
+)}
+
                   </div>
                 );
               })}
