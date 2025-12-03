@@ -1,4 +1,9 @@
+import React from "react";
+type RN = React.ReactNode;
+
 import { useEffect, useState } from "react";
+
+
 import AnimatedCollapse from "./AnimatedCollapse";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 
@@ -58,7 +63,8 @@ export default function ScheduleCards({
   const [label, setLabel] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoModalMessage, setInfoModalMessage] = useState("");
+ const [infoModalMessage, setInfoModalMessage] = useState<React.ReactNode>("");
+
   const [initialLoad, setInitialLoad] = useState(true);
   const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({});
 
@@ -204,18 +210,22 @@ export default function ScheduleCards({
     }
 
     // 3) max 1 termin dnevno (osim admin broja, ako želiš)
-    const adminPhone = "20181804";
-    if (phone !== adminPhone) {
-      const sameDayReservation = reservations.find(
-        (r) =>
-          r.phone === phone &&
-          sessions.find((s) => s.id === r.sessionId)?.date === session.date
-      );
-      if (sameDayReservation) {
-        onShowPopup("⛔ Već imate rezervaciju za taj dan.");
-        return;
-      }
-    }
+// 3) max 1 termin dnevno (osim admin broja)
+const adminPhone = "0000"; /////// PROMIJENI LOZINKU
+if (phone !== adminPhone) {
+  const sameDayReservation = reservations.find(
+    (r) =>
+      r.phone === phone &&
+      sessions.find((s) => s.id === r.sessionId)?.date === session.date
+  );
+
+  if (sameDayReservation) {
+    setInfoModalMessage("⛔ Dopuštena je samo jedna rezervacija u danu.");
+    setShowInfoModal(true);
+    return;
+  }
+}
+
 
     // 4) već rezerviran ovaj termin
     const already = reservations.find(
@@ -311,11 +321,27 @@ export default function ScheduleCards({
       }
 
       // 7) poruka
-      setInfoModalMessage(
-        status === "rezervirano"
-          ? `✅ Rezervirali ste termin:\n${session.date}\n${session.time}`
-          : `🕐 Dodani ste na listu čekanja:\n${session.date}\n${session.time}`
-      );
+     // 7) poruka
+setInfoModalMessage(
+  status === "rezervirano" ? (
+    <>
+      ✅ Rezervirali ste termin:
+      <br />
+      {session.date}
+      <br />
+      {session.time}
+    </>
+  ) : (
+    <>
+      🕐 Dodani ste na listu čekanja:
+      <br />
+      {session.date}
+      <br />
+      {session.time}
+    </>
+  )
+);
+
       setShowInfoModal(true);
       onReservationMade();
       fetchData(false);
@@ -394,8 +420,15 @@ export default function ScheduleCards({
       }
 
       setInfoModalMessage(
-        `Otkazali ste termin:\n${session.date}\n${session.time}`
-      );
+  <>
+    Otkazali ste termin:
+    <br />
+    {session.date}
+    <br />
+    {session.time}
+  </>
+);
+
       setShowInfoModal(true);
       fetchData(false);
     } catch (err) {
@@ -558,9 +591,9 @@ export default function ScheduleCards({
                       </div>
                     ) : null}
 
-                   {reserved ? (
+                  {reserved ? (
   <button
-    className={`cancel-button ${isPast ? "reserve-button-past" : ""}`}
+    className="cancel-button"
     disabled={isPast}
     onClick={() => !isPast && setConfirmCancelSession(s)}
   >
@@ -572,6 +605,7 @@ export default function ScheduleCards({
       isPast ? "reserve-button-past" : isFull ? "full" : ""
     }`}
     disabled={isPast}
+    onClick={() => !isPast && setConfirmSession(s)}
   >
     {isPast
       ? "Termin je prošao"

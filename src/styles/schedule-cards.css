@@ -262,6 +262,7 @@
 .cancel-button {
   width: 100%;
   padding: 0.55rem 0.8rem;
+  margin-top: 1rem;
   border-radius: 8px;
   border: 1px solid transparent;
   font-size: 0.9rem;
