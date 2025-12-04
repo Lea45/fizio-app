@@ -1,24 +1,26 @@
+import React from "react";
 import { useEffect, useState } from "react";
+import "../styles/my-bookings.css";
+
+import { FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
+import spinner from "./spinning-dots.svg";
+
+import ConfirmPopup from "./ConfirmPopup";
+
+import { db } from "../firebase";
 import {
   collection,
   getDocs,
   query,
   where,
   doc,
-  updateDoc,
-  runTransaction,
+  deleteDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
-import ConfirmPopup from "./ConfirmPopup";
-import "../styles/my-bookings.css";
-import spinner from "../assets/react.svg";
-import { FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
 
 type Booking = {
   id: string;
-  sessionId: string;
   phone: string;
-  name?: string;
+  sessionId: string;
   date: string;
   time: string;
   status: "rezervirano" | "cekanje";
@@ -32,209 +34,140 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentLabel, setCurrentLabel] = useState("");
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoModalMessage, setInfoModalMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [infoModalMessage, setInfoModalMessage] = useState<React.ReactNode>("");
+  const [loading, setLoading] = useState(true);
   const [confirmCancelBooking, setConfirmCancelBooking] =
     useState<Booking | null>(null);
 
   const phone = localStorage.getItem("phone");
 
+  const fetchBookings = async () => {
+    if (!phone) return;
+
+    setLoading(true);
+
+    const q = query(
+      collection(db, "reservations"),
+      where("phone", "==", phone)
+    );
+
+    const snap = await getDocs(q);
+    const fetched = snap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as any),
+    })) as Booking[];
+
+    // Sortiraj po datumu + vremenu
+    fetched.sort((a, b) => {
+      const [da, ma, ya] = a.date.split(".").map(Number);
+      const [dbb, mb, yb] = b.date.split(".").map(Number);
+      return (
+        new Date(ya, ma - 1, da).getTime() -
+        new Date(yb, mb - 1, dbb).getTime()
+      );
+    });
+
+    setBookings(fetched);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchAll = async () => {
-      if (!phone) return;
-      setLoading(true);
-
-      const snap = await getDocs(
-        query(collection(db, "reservations"), where("phone", "==", phone))
-      );
-      const fetched = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Booking[];
-
-      // sortiraj po datumu
-      fetched.sort((a, b) => a.date.localeCompare(b.date));
-
-      const now = new Date();
-
-      const futureBookings = fetched.filter((b) => {
-        const [d, m, y] = b.date.split(".");
-        const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-        const rawTime = b.time.split(/[-–]/)[0].trim();
-        const [hours, minutes] = rawTime.split(":").map(Number);
-        const date = new Date(dateISO);
-        date.setHours(hours, minutes, 0, 0);
-        return date.getTime() >= now.getTime();
-      });
-
-      const pastBookings = fetched.filter((b) => {
-        const [d, m, y] = b.date.split(".");
-        const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-        const rawTime = b.time.split(/[-–]/)[0].trim();
-        const [hours, minutes] = rawTime.split(":").map(Number);
-        const date = new Date(dateISO);
-        date.setHours(hours, minutes, 0, 0);
-        return date.getTime() < now.getTime();
-      });
-
-      setBookings(futureBookings);
-      localStorage.setItem("pastBookings", JSON.stringify(pastBookings));
-
-      // meta dokument (ako ga imaš u Fizio bazi)
-      const metaSnap = await getDocs(
-        query(collection(db, "sessions"), where("__name__", "==", "meta"))
-      );
-      const metaDoc = metaSnap.docs[0];
-      if (metaDoc && metaDoc.exists()) {
-        const data = metaDoc.data() as any;
-        if (data.label) setCurrentLabel(data.label);
-      }
-
-      setLoading(false);
-    };
-
-    fetchAll();
-  }, [phone]);
+    fetchBookings();
+  }, []);
 
   const cancelBooking = async (booking: Booking) => {
-    const [d, m, y] = booking.date.split(".");
-    const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    const rawTime = booking.time.split(/[-–]/)[0].trim();
-    const [hours, minutes] = rawTime.split(":").map(Number);
-    const sessionDateTime = new Date(dateISO);
-    sessionDateTime.setHours(hours, minutes, 0, 0);
-
-    const now = new Date();
-    const timeDiffHours =
-      (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    const canCancel = timeDiffHours >= 2;
-
     try {
-      await runTransaction(db, async (t) => {
-        const sessionRef = doc(db, "sessions", booking.sessionId);
-        const sessionSnap = await t.get(sessionRef);
-        const sessionData = sessionSnap.data() as any;
+      await deleteDoc(doc(db, "reservations", booking.id));
 
-        if (!sessionSnap.exists()) throw new Error("Session ne postoji.");
-        if (!sessionData) throw new Error("SessionData je prazan.");
-
-        // obriši rezervaciju
-        t.delete(doc(db, "reservations", booking.id));
-
-        let newBooked = sessionData.bookedSlots ?? 0;
-
-        if (booking.status === "rezervirano") {
-          newBooked = Math.max(0, newBooked - 1);
-
-          // lista čekanja
-          const waitSnap = await getDocs(
-            query(
-              collection(db, "reservations"),
-              where("sessionId", "==", booking.sessionId),
-              where("status", "==", "cekanje")
-            )
-          );
-
-          const waitlist = waitSnap.docs
-            .map((doc) => {
-              const data = doc.data() as any;
-              return {
-                id: doc.id,
-                phone: data.phone,
-                createdAt: data.createdAt?.toDate?.() ?? new Date(0),
-              };
-            })
-            .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-          if (waitlist.length > 0) {
-            const next = waitlist[0];
-            const nextRef = doc(db, "reservations", next.id);
-            t.update(nextRef, { status: "rezervirano" });
-            newBooked += 1;
-
-            // ⛔ OVDJE NE ŠALJEMO WHATSAPP – samo promo
-          }
-        }
-
-        t.update(sessionRef, { bookedSlots: newBooked });
-      });
-
-      // vrati dolazak ako je otkazano na vrijeme
-      if (canCancel) {
-        const userSnap = await getDocs(
-          query(collection(db, "users"), where("phone", "==", booking.phone))
-        );
-        if (!userSnap.empty) {
-          const userDoc = userSnap.docs[0];
-          const userRef = doc(db, "users", userDoc.id);
-          const current = (userDoc.data() as any).remainingVisits ?? 0;
-          await updateDoc(userRef, { remainingVisits: current + 1 });
-        }
-      }
-
+      // Makni iz lokalnog state-a
       setBookings((prev) => prev.filter((b) => b.id !== booking.id));
-      const msg = `Otkazali ste termin:\n${booking.date}\n${booking.time}`;
-      setInfoModalMessage(msg);
+
+      // Elegantna popup poruka
+      setInfoModalMessage(
+        <>
+          Otkazali ste termin:
+          <br />
+          {booking.date}
+          <br />
+          {booking.time}
+        </>
+      );
       setShowInfoModal(true);
-      onChanged("Termin otkazan.");
+
+      // NEMA više onChanged("Termin otkazan.")
     } catch (err) {
       console.error("❌ Greška pri otkazivanju:", err);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bookings-loading">
+        <img src={spinner} alt="Učitavanje..." />
+      </div>
+    );
+  }
+
   return (
     <div className="my-bookings">
-      {currentLabel && (
-        <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
-          📌 Aktivni tjedan: {currentLabel}
-        </h3>
+      {/* INFO POPUP */}
+      {showInfoModal && (
+        <ConfirmPopup
+          infoOnly
+          message={infoModalMessage}
+          onCancel={() => setShowInfoModal(false)}
+        />
       )}
 
-      {loading ? (
-        <div className="bookings-loading">
-          <img src={spinner} alt="Učitavanje..." />
-        </div>
-      ) : bookings.length === 0 ? (
-        <p className="no-bookings-message">Nemate aktivnih termina.</p>
+      {/* CONFIRM CANCEL POPUP */}
+      {confirmCancelBooking && (
+        <ConfirmPopup
+          message={
+            <>
+              <strong>Otkazati termin?</strong>
+              <br />
+              {confirmCancelBooking.date}
+              <br />
+              {confirmCancelBooking.time}
+            </>
+          }
+          onConfirm={() => {
+            cancelBooking(confirmCancelBooking);
+            setConfirmCancelBooking(null);
+          }}
+          onCancel={() => setConfirmCancelBooking(null)}
+        />
+      )}
+
+      {bookings.length === 0 ? (
+        <p className="no-bookings-message">Nemate rezerviranih termina.</p>
       ) : (
         <div className="bookings-list">
           {bookings.map((booking) => {
             const now = new Date();
-
             const [d, m, y] = booking.date.split(".");
-            const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(
-              2,
-              "0"
-            )}`;
+            const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+            const startTime = booking.time.split(" - ")[0].trim();
+            const [hours, minutes] = startTime.split(":").map(Number);
+            const sessionDateTime = new Date(dateISO);
+            sessionDateTime.setHours(hours, minutes, 0, 0);
 
-            const rawTime = booking.time.split(/[-–]/)[0].trim();
-            const [hours, minutes] = rawTime.split(":").map(Number);
+            const isPast = sessionDateTime.getTime() < now.getTime();
+            const timeDiffHours =
+              (sessionDateTime.getTime() - now.getTime()) /
+              (1000 * 60 * 60);
 
-            const bookingDateTime = new Date(dateISO);
-            bookingDateTime.setHours(hours, minutes, 0, 0);
-
-            const isToday =
-              now.toDateString() === bookingDateTime.toDateString();
-            const isPast = bookingDateTime.getTime() < now.getTime();
-
-            let canCancel = true;
-
-            if (isPast) {
-              canCancel = false;
-            } else if (isToday) {
-              const timeDiffHours =
-                (bookingDateTime.getTime() - now.getTime()) /
-                (1000 * 60 * 60);
-              canCancel = timeDiffHours >= 2;
-            }
+            const canCancel = !isPast && timeDiffHours >= 2;
 
             return (
               <div className="booking-card" key={booking.id}>
+                {/* DATUM + VRIJEME */}
                 <div className="booking-info">
-                  <span>{booking.date}</span>
-                  <span>{booking.time}</span>
+                  <span className="booking-date">{booking.date}</span>
+                  <span className="booking-time">{booking.time}</span>
                 </div>
 
+                {/* STATUS */}
                 <div className="booking-status">
                   {booking.status === "rezervirano" ? (
                     <span className="status-tag reserved">
@@ -249,8 +182,9 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
                   )}
                 </div>
 
+                {/* GUMB — FULL WIDTH */}
                 <button
-                  className="cancel-button"
+                  className="cancel-button booking-full"
                   onClick={() =>
                     canCancel ? setConfirmCancelBooking(booking) : null
                   }
@@ -271,33 +205,6 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
             );
           })}
         </div>
-      )}
-
-      {confirmCancelBooking && (
-        <ConfirmPopup
-          message={
-            <>
-              Jeste li sigurni da želite otkazati termin?
-              <br />
-              <strong>{confirmCancelBooking.date}</strong>
-              <br />
-              <strong>{confirmCancelBooking.time}</strong>
-            </>
-          }
-          onConfirm={() => {
-            cancelBooking(confirmCancelBooking);
-            setConfirmCancelBooking(null);
-          }}
-          onCancel={() => setConfirmCancelBooking(null)}
-        />
-      )}
-
-      {showInfoModal && (
-        <ConfirmPopup
-          message={infoModalMessage}
-          onCancel={() => setShowInfoModal(false)}
-          infoOnly
-        />
       )}
     </div>
   );
