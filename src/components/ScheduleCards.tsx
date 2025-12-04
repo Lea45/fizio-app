@@ -591,15 +591,9 @@ setInfoModalMessage(
                       </div>
                     ) : null}
 
-                  {reserved ? (
-  <button
-    className="cancel-button"
-    disabled={isPast}
-    onClick={() => !isPast && setConfirmCancelSession(s)}
-  >
-    {isPast ? "Termin je prošao" : "Otkaži termin"}
-  </button>
-) : (
+ {/* Ako TERMIN NIJE rezerviran -> prikaz gumba za rezervaciju.
+    Ako JE rezerviran -> nema gumba, samo status iznad. */}
+{!reserved && (
   <button
     className={`reserve-button ${
       isPast ? "reserve-button-past" : isFull ? "full" : ""
@@ -614,6 +608,7 @@ setInfoModalMessage(
       : "Rezerviraj"}
   </button>
 )}
+
 
                   </div>
                 );
