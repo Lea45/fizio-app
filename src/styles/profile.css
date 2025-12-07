@@ -1,0 +1,284 @@
+/* =============================== */
+/*            KONTAINER            */
+/* =============================== */
+
+.profile {
+  padding: 24px 16px;
+  max-width: 460px;
+  margin: 0 auto;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #e5f2ff;
+}
+
+/* =============================== */
+/*             HEADER              */
+/* =============================== */
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.profile-title {
+  font-weight: 700;
+  font-size: 1.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* =============================== */
+/*             KARTICE             */
+/* =============================== */
+
+.profile-card {
+  background: rgba(15, 23, 42, 0.9);
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  margin-bottom: 16px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.7);
+}
+
+.profile-card.visits {
+  border-width: 2px;
+  border-image: linear-gradient(135deg, #22c55e, #0ea5e9) 1;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profile-label {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: rgba(191, 219, 254, 0.95);
+}
+
+.profile-value {
+  font-size: 1rem;
+  color: #e5f2ff;
+}
+
+/* =============================== */
+/*          DOLASCI / PASS         */
+/* =============================== */
+
+.visits-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.visits-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.visits-number {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+.visits-text {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.visits-valid {
+  font-size: 0.85rem;
+  color: rgba(209, 213, 219, 0.95);
+}
+
+/* =============================== */
+/*           GUMBI ROW             */
+/* =============================== */
+
+.profile-buttons-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+/* ------------------------------- */
+/*        Gumb: Povijest           */
+/* ------------------------------- */
+
+.profile-history-button {
+  width: 100%;
+  max-width: 200px;
+  padding: 12px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.9);
+  background: transparent;
+  color: rgba(226, 232, 240, 0.96);
+  transition: 0.2s ease;
+}
+
+.profile-history-button:hover {
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* ------------------------------- */
+/*        Gumb: Odjava             */
+/* ------------------------------- */
+
+.profile-logout-button {
+  width: 100%;
+  max-width: 180px;
+  padding: 12px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.9);
+  background: transparent;
+  color: rgba(226, 232, 240, 0.96);
+  transition: 0.2s ease;
+}
+
+.profile-logout-button:hover {
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* =============================== */
+/*         POPUP OVERLAY           */
+/* =============================== */
+
+.profile-history-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+/* =============================== */
+/*           POPUP MODAL           */
+/* =============================== */
+
+.profile-history-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.98);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.9);
+  padding: 16px 18px 18px;
+}
+
+.profile-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.profile-history-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #e5f2ff;
+}
+
+.profile-history-close {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.profile-history-close:hover {
+  color: #f9fafb;
+}
+
+/* =============================== */
+/*       POPUP LIST / ITEMS        */
+/* =============================== */
+
+.profile-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-history-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(55, 65, 81, 0.8);
+}
+
+.history-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.history-date {
+  font-weight: 600;
+  color: #e0f2fe;
+  font-size: 0.95rem;
+}
+
+.history-time {
+  font-size: 0.9rem;
+  color: rgba(191, 219, 254, 0.9);
+}
+
+.history-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #bbf7d0;
+}
+
+.profile-history-empty {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+/* =============================== */
+/*           RESPONSIVE            */
+/* =============================== */
+
+@media (max-width: 480px) {
+  .profile {
+    padding: 20px 14px 28px;
+  }
+
+  .profile-title {
+    font-size: 1.5rem;
+  }
+}
