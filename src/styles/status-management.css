@@ -157,7 +157,8 @@
   align-items: center;
   padding: 0.28rem 0.6rem;
   margin: 0 0.4rem 0.4rem 0;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
+  width: 95%;
   background: linear-gradient(
     135deg,
     rgba(14, 124, 134, 0.2),
@@ -212,11 +213,13 @@
 .modal button.yes {
   background: linear-gradient(135deg, var(--accent), var(--primary));
   color: var(--ink);
+  border-radius: var(--radius-sm);
 }
 
 .modal button.no {
   background: transparent;
   color: var(--text);
+  border-radius: var(--radius-sm);
 }
 
 .modal button:hover {

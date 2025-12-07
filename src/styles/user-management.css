@@ -211,7 +211,7 @@
   margin: 1rem auto 0;
   display: block;
   padding: 0.7rem 1.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: rgba(11, 18, 32, 0.95);
   border: 1px solid rgba(148, 163, 184, 0.6);
   color: var(--text);
@@ -324,7 +324,7 @@
 
 .yes-btn {
   padding: 0.55rem 1.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, var(--accent), var(--primary));
   border: 1px solid rgba(217, 119, 6, 0.9);
   color: var(--ink);
@@ -334,11 +334,12 @@
 
 .no-btn {
   padding: 0.55rem 1.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: rgba(11, 18, 32, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.6);
   color: var(--text);
   cursor: pointer;
+  width: auto;
 }
 
 .no-btn:hover {

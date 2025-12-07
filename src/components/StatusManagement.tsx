@@ -136,7 +136,7 @@ export default function StatusManagement() {
       });
 
       if (waitlistToRefund.length === 0) {
-        setInfoMessage("ℹ️ Nema rezervacija na čekanju za povrat.");
+        setInfoMessage(" Nema rezervacija na čekanju za povrat.");
         setShowInfoModal(true);
         return;
       }
@@ -223,7 +223,7 @@ export default function StatusManagement() {
         <div className="modal-overlay">
           <div className="modal">
             <p>
-              Jesi li sigurna da želiš vratiti dolaske za sve rezervacije na
+              Jesi li siguran da želiš vratiti dolaske za sve rezervacije na
               čekanju kojima je prošao termin?
             </p>
             <div>
@@ -311,7 +311,7 @@ export default function StatusManagement() {
                                       marginBottom: "6px",
                                     }}
                                   >
-                                    ✅ Rezervirani:
+                                     Rezervirani:
                                   </div>
                                   {related
                                     .filter((r) => r.status === "rezervirano")

@@ -288,7 +288,7 @@ export default function UserManagement() {
         <div className="fizio-overlay">
           <div className="fizio-modal">
             <p>
-              Želiš obrisati korisnika <strong>{userToDelete.name}</strong>?
+              Želiš li obrisati korisnika: <strong>{userToDelete.name}</strong>?
             </p>
 
             <div className="fizio-modal-buttons">

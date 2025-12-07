@@ -65,7 +65,7 @@ export default function LoginFizio({
               setPhone(e.target.value);
               setStatus("");
             }}
-            placeholder="Unesi broj telefona (385...)"
+            placeholder="Unesi broj telefona..."
           />
           <button type="submit" className="login-button">
             Prijava
