@@ -56,7 +56,7 @@ export default function ClientDashboard() {
           }`}
           onClick={() => setActiveTab("moji-termini")}
         >
-          <FaCheckCircle /> Moji termini
+           Moji termini
         </button>
 
         <button

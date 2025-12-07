@@ -20,7 +20,7 @@ type HistoryItem = {
   id: string;
   date: string;
   time: string;
-  createdAt?: number; // za sortiranje, ako postoji u bazi
+  createdAt?: number;
 };
 
 export default function Profile() {
@@ -36,7 +36,9 @@ export default function Profile() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // 🔹 User podaci
+  // ============================
+  // USER PODACI
+  // ============================
   useEffect(() => {
     if (!phone) return;
 
@@ -46,6 +48,7 @@ export default function Profile() {
       if (!snap.empty) {
         const userDoc = snap.docs[0];
         const userData = userDoc.data() as any;
+
         setName(userData.name || "");
         setRemainingVisits(userData.remainingVisits ?? null);
         setValidUntil(userData.validUntil ?? "");
@@ -55,25 +58,22 @@ export default function Profile() {
     return () => unsubscribe();
   }, [phone]);
 
-  // 🔹 Povijest termina iz Firestore-a (reservations)
+  // ============================
+  // POVIJEST TERMINA – FIRESTORE
+  // ============================
+// ============================
+// POVIJEST TERMINA – FIRESTORE
+// ============================
 useEffect(() => {
-  if (!userId && !phone) return;
+  if (!phone) return;
 
-  // 👇 privremeno logiranje da vidimo što se događa
-  console.log("userId iz localStorage:", userId);
-  console.log("phone iz localStorage:", phone);
-
-  // 🔹 ZA SAD koristimo phone, jer znamo sigurno da ga imaš
   const qHistory = query(
     collection(db, "reservations"),
-    where("phone", "==", phone) // <-- OVDJE PROMIJENI AKO TI SE POLJE ZOVE DRUGAČIJE
-    // where("status", "==", "rezervirano")  // ovo možemo vratiti kad potvrdimo ime/status
+    where("phone", "==", phone),
+    where("status", "==", "rezervirano")
   );
 
   const unsubscribe = onSnapshot(qHistory, (snap) => {
-    console.log("Broj dokumenata u povijesti:", snap.size);
-    snap.docs.forEach((d) => console.log("RES:", d.id, d.data()));
-
     const items: HistoryItem[] = snap.docs.map((docSnap) => {
       const data = docSnap.data() as any;
 
@@ -95,9 +95,13 @@ useEffect(() => {
   });
 
   return () => unsubscribe();
-}, [userId, phone]);
+}, [phone]);
 
 
+
+  // ============================
+  // ODJAVA
+  // ============================
   const handleLogout = () => {
     localStorage.removeItem("phone");
     localStorage.removeItem("userId");
@@ -113,11 +117,16 @@ useEffect(() => {
 
   return (
     <div className="profile">
+      {/* ======================== */}
+      {/* HEADER */}
+      {/* ======================== */}
       <div className="profile-header">
         <h2 className="profile-title">Moj profil</h2>
       </div>
 
+      {/* ======================== */}
       {/* OSOBNI PODACI */}
+      {/* ======================== */}
       <div className="profile-card">
         <label className="profile-label">
           <FaUser style={{ marginRight: "8px" }} />
@@ -134,42 +143,40 @@ useEffect(() => {
         <div className="profile-value">{phone}</div>
       </div>
 
-      {/* GUMBI – povijest + odjava */}
-      <div className="profile-buttons-row">
-  <button
-    className="profile-history-button"
-    onClick={() => setShowHistoryModal(true)}
-  >
-    <FaFolderOpen style={{ marginRight: "6px" }} />
-    Povijest termina
-  </button>
-
-  <button onClick={handleLogout} className="profile-logout-button">
-    <FaSignOutAlt style={{ marginRight: "6px" }} />
-    Odjava
-  </button>
-</div>
-
-
-      {/* DOLASCI */}
+      {/* ======================== */}
+      {/* DOLASCI — POMAKNUTO IZNAD GUMBA */}
+      {/* ======================== */}
       {remainingVisits !== null && (
-        <div className="profile-card visits">
-          <label className="profile-label">🎟 Dolasci:</label>
-          <div className="visits-content">
-            <div className="visits-row">
-              <span className="visits-number">{remainingVisits}</span>
-              <span className="visits-text">preostalih dolazaka</span>
-            </div>
-            {validUntil && (
-              <div className="visits-valid">
-                Vrijede do: <strong>{formatDate(validUntil)}</strong>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+  <div className="profile-card visits">
+    <div className="visits-row-perfect">
+      <span className="visits-clean-title">Preostali dolasci:</span>
+      <span className="visits-clean-number">{remainingVisits}</span>
+    </div>
+  </div>
+)}
 
-      {/* POPUP – povijest termina */}
+
+      {/* ======================== */}
+      {/* GUMBI – POVIJEST + ODJAVA */}
+      {/* ======================== */}
+      <div className="profile-buttons-row">
+        <button
+          className="profile-history-button"
+          onClick={() => setShowHistoryModal(true)}
+        >
+          <FaFolderOpen style={{ marginRight: "6px" }} />
+          Povijest termina
+        </button>
+
+        <button onClick={handleLogout} className="profile-logout-button">
+          <FaSignOutAlt style={{ marginRight: "6px" }} />
+          Odjava
+        </button>
+      </div>
+
+      {/* ======================== */}
+      {/* POPUP – POVIJEST TERMINA */}
+      {/* ======================== */}
       {showHistoryModal && (
         <div
           className="profile-history-overlay"
@@ -201,10 +208,8 @@ useEffect(() => {
                       <span className="history-date">{h.date}</span>
                       <span className="history-time">{h.time}</span>
                     </div>
-                    <div className="history-status">
-                      <FaCheckCircle className="profile-status-icon" />{" "}
-                      Prisustvovali
-                    </div>
+
+                    
                   </div>
                 ))}
               </div>
