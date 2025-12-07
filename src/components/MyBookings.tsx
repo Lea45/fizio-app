@@ -1,5 +1,4 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "../styles/my-bookings.css";
 
 import { FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
@@ -21,8 +20,8 @@ type Booking = {
   id: string;
   phone: string;
   sessionId: string;
-  date: string;
-  time: string;
+  date: string; // npr. "05. 12. 2025."
+  time: string; // npr. "10:00 - 11:00"
   status: "rezervirano" | "cekanje";
 };
 
@@ -30,11 +29,37 @@ type MyBookingsProps = {
   onChanged: (message: string) => void;
 };
 
+// ⬇️ helper koji pretvara date+time u pravi Date objekt
+function getSessionDateTime(booking: Booking): Date | null {
+  if (!booking.date || !booking.time) return null;
+
+  const [dRaw, mRaw, yRawWithDot] = booking.date.split(".");
+  const day = parseInt(dRaw.trim(), 10);
+  const month = parseInt(mRaw.trim(), 10); // 1-12
+  const year = parseInt(yRawWithDot.replace(/\D/g, "").trim(), 10); // makne točku
+
+  if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
+    return null;
+  }
+
+  const [startPart] = booking.time.split(" - ");
+  const [hStr, mStr] = startPart.trim().split(":");
+  const hour = parseInt(hStr, 10);
+  const minute = parseInt(mStr, 10);
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+}
+
 const MyBookings = ({ onChanged }: MyBookingsProps) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentLabel, setCurrentLabel] = useState("");
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoModalMessage, setInfoModalMessage] = useState<React.ReactNode>("");
+  const [infoModalMessage, setInfoModalMessage] =
+    useState<React.ReactNode>("");
   const [loading, setLoading] = useState(true);
   const [confirmCancelBooking, setConfirmCancelBooking] =
     useState<Booking | null>(null);
@@ -57,17 +82,24 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
       ...(d.data() as any),
     })) as Booking[];
 
-    // Sortiraj po datumu + vremenu
-    fetched.sort((a, b) => {
-      const [da, ma, ya] = a.date.split(".").map(Number);
-      const [dbb, mb, yb] = b.date.split(".").map(Number);
-      return (
-        new Date(ya, ma - 1, da).getTime() -
-        new Date(yb, mb - 1, dbb).getTime()
-      );
+    const now = new Date();
+
+    // 🔹 zadrži SAMO buduće termine
+    const futureOnly = fetched.filter((b) => {
+      const dt = getSessionDateTime(b);
+      if (!dt) return false;
+      return dt.getTime() > now.getTime();
     });
 
-    setBookings(fetched);
+    // 🔹 sort po datumu/vremenu (najbliži prvi)
+    futureOnly.sort((a, b) => {
+      const da = getSessionDateTime(a);
+      const dbb = getSessionDateTime(b);
+      if (!da || !dbb) return 0;
+      return da.getTime() - dbb.getTime();
+    });
+
+    setBookings(futureOnly);
     setLoading(false);
   };
 
@@ -93,8 +125,6 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
         </>
       );
       setShowInfoModal(true);
-
-      // NEMA više onChanged("Termin otkazan.")
     } catch (err) {
       console.error("❌ Greška pri otkazivanju:", err);
     }
@@ -145,17 +175,17 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
         <div className="bookings-list">
           {bookings.map((booking) => {
             const now = new Date();
-            const [d, m, y] = booking.date.split(".");
-            const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-            const startTime = booking.time.split(" - ")[0].trim();
-            const [hours, minutes] = startTime.split(":").map(Number);
-            const sessionDateTime = new Date(dateISO);
-            sessionDateTime.setHours(hours, minutes, 0, 0);
+            const sessionDateTime = getSessionDateTime(booking);
 
-            const isPast = sessionDateTime.getTime() < now.getTime();
-            const timeDiffHours =
-              (sessionDateTime.getTime() - now.getTime()) /
-              (1000 * 60 * 60);
+            let isPast = false;
+            let timeDiffHours = 0;
+
+            if (sessionDateTime) {
+              isPast = sessionDateTime.getTime() < now.getTime();
+              timeDiffHours =
+                (sessionDateTime.getTime() - now.getTime()) /
+                (1000 * 60 * 60);
+            }
 
             const canCancel = !isPast && timeDiffHours >= 2;
 
@@ -195,11 +225,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
                   }}
                 >
                   <FaTimesCircle className="status-icon" />
-                  {canCancel
-                    ? "Otkaži"
-                    : isPast
-                    ? "Termin je prošao"
-                    : "Prekasno za otkazivanje"}
+                  {canCancel ? "Otkaži" : "Prekasno za otkazivanje"}
                 </button>
               </div>
             );
