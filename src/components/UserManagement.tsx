@@ -13,6 +13,7 @@ import {
   limit,
   startAfter,
   QueryDocumentSnapshot,
+  serverTimestamp,
 } from "firebase/firestore";
 import "../styles/user-management.css";
 
@@ -22,6 +23,9 @@ interface User {
   phone: string;
   remainingVisits: number;
   validUntil: string;
+  noteTitle?: string;
+  noteBody?: string;
+  noteUpdatedAt?: any;
 }
 
 export default function UserManagement() {
@@ -51,6 +55,10 @@ export default function UserManagement() {
   const [hasMore, setHasMore] = useState(true);
 
   const [showAddOptions, setShowAddOptions] = useState(false);
+  const [showNoteEditor, setShowNoteEditor] = useState(false);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteBody, setNoteBody] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
 
   const docToUser = (d: any): User => ({
     id: d.id,
@@ -58,33 +66,50 @@ export default function UserManagement() {
     phone: d.data().phone,
     remainingVisits: d.data().remainingVisits || 0,
     validUntil: d.data().validUntil || "",
+    noteTitle: d.data().noteTitle || "",
+    noteBody: d.data().noteBody || "",
+    noteUpdatedAt: d.data().noteUpdatedAt || null,
   });
 
   const fetchUsers = async () => {
-    const q = query(collection(db, "users"), orderBy("name"), limit(PAGE_SIZE));
-    const snap = await getDocs(q);
+    try {
+      const q = query(
+        collection(db, "users"),
+        orderBy("name"),
+        limit(PAGE_SIZE)
+      );
+      const snap = await getDocs(q);
 
-    setUsers(snap.docs.map(docToUser));
-    setLastVisible(snap.docs[snap.docs.length - 1] || null);
-    setHasMore(snap.docs.length === PAGE_SIZE);
+      setUsers(snap.docs.map(docToUser));
+      setLastVisible(snap.docs[snap.docs.length - 1] || null);
+      setHasMore(snap.docs.length === PAGE_SIZE);
+    } catch (e) {
+      console.error("❌ fetchUsers:", e);
+      setHasMore(false);
+    }
   };
 
   const fetchMoreUsers = async () => {
-    if (!lastVisible) return;
-    setLoadingMore(true);
+    try {
+      if (!lastVisible) return;
 
-    const q = query(
-      collection(db, "users"),
-      orderBy("name"),
-      startAfter(lastVisible),
-      limit(PAGE_SIZE)
-    );
+      const q = query(
+        collection(db, "users"),
+        orderBy("phone"),
+        startAfter(lastVisible),
+        limit(PAGE_SIZE)
+      );
 
-    const snap = await getDocs(q);
-    setUsers((prev) => [...prev, ...snap.docs.map(docToUser)]);
-    setLastVisible(snap.docs[snap.docs.length - 1] || null);
-    setHasMore(snap.docs.length === PAGE_SIZE);
-    setLoadingMore(false);
+      const snap = await getDocs(q);
+      const newUsers = snap.docs.map(docToUser);
+
+      setUsers((prev) => [...prev, ...newUsers]);
+      setLastVisible(snap.docs[snap.docs.length - 1] || null);
+      setHasMore(snap.docs.length === PAGE_SIZE);
+    } catch (e) {
+      console.error("❌ fetchMoreUsers:", e);
+      setHasMore(false);
+    }
   };
 
   useEffect(() => {
@@ -98,7 +123,7 @@ export default function UserManagement() {
       return;
     }
 
-    const q = query(collection(db, "users"), orderBy("name"));
+    const q = query(collection(db, "users"), orderBy("phone"));
     const snap = await getDocs(q);
     const all = snap.docs.map(docToUser);
 
@@ -153,6 +178,9 @@ export default function UserManagement() {
     setShowManual(false);
     setShowConfirm(false);
     setShowAddOptions(false);
+    setNoteTitle(data?.noteTitle ?? "");
+    setNoteBody(data?.noteBody ?? "");
+    setShowNoteEditor(false);
   };
 
   const handleConfirmEntry = async () => {
@@ -181,6 +209,50 @@ export default function UserManagement() {
     setShowManual(false);
 
     setShowAddOptions(false);
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedUser) return;
+    setNoteSaving(true);
+    try {
+      await updateDoc(doc(db, "users", selectedUser.id), {
+        noteTitle: noteTitle.trim(),
+        noteBody,
+        noteUpdatedAt: serverTimestamp(),
+      });
+
+      // odmah osvježi UI u modalu
+      setSelectedUser((prev) =>
+        prev ? { ...prev, noteTitle: noteTitle.trim(), noteBody } : prev
+      );
+      setSuccessMessage(`Opis spremljen za ${selectedUser.name}.`);
+      setShowSuccess(true);
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!selectedUser) return;
+    setNoteSaving(true);
+    try {
+      await updateDoc(doc(db, "users", selectedUser.id), {
+        noteTitle: "",
+        noteBody: "",
+        noteUpdatedAt: serverTimestamp(),
+      });
+
+      setNoteTitle("");
+      setNoteBody("");
+      setSelectedUser((prev) =>
+        prev ? { ...prev, noteTitle: "", noteBody: "" } : prev
+      );
+
+      setSuccessMessage(`Opis obrisan za ${selectedUser.name}.`);
+      setShowSuccess(true);
+    } finally {
+      setNoteSaving(false);
+    }
   };
 
   const numberAdd = Number(additionalVisits || "0");
@@ -354,6 +426,95 @@ export default function UserManagement() {
                 </button>
               </>
             )}
+            <hr style={{ margin: "1.2rem 0", opacity: 0.2 }} />
+
+            <div style={{ textAlign: "left" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "10px",
+                  alignItems: "center",
+                }}
+              >
+                <h4 style={{ margin: 0 }}>Opis / vježbe</h4>
+
+                <button
+                  type="button"
+                  className="user-btn user-btn-secondary"
+                  onClick={() => setShowNoteEditor((v) => !v)}
+                >
+                  {showNoteEditor
+                    ? "Zatvori"
+                    : selectedUser.noteBody?.trim()
+                    ? "Uredi opis"
+                    : "Dodaj opis"}
+                </button>
+              </div>
+
+              {!showNoteEditor && selectedUser.noteBody?.trim() && (
+                <div
+                  style={{
+                    marginTop: "0.8rem",
+                    padding: "0.8rem",
+                    borderRadius: 12,
+                    border: "1px solid rgba(148,163,184,0.25)",
+                  }}
+                >
+                  <strong>
+                    {selectedUser.noteTitle?.trim() || "Vježbe / upute"}
+                  </strong>
+                  <p style={{ whiteSpace: "pre-line", marginTop: 8 }}>
+                    {selectedUser.noteBody}
+                  </p>
+                </div>
+              )}
+
+              {showNoteEditor && (
+                <div
+                  style={{ marginTop: "0.8rem", display: "grid", gap: "10px" }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Naslov (npr. Vježbe za leđa)"
+                    value={noteTitle}
+                    onChange={(e) => setNoteTitle(e.target.value)}
+                  />
+
+                  <textarea
+                    placeholder="Upiši opis/vježbe..."
+                    value={noteBody}
+                    onChange={(e) => setNoteBody(e.target.value)}
+                    rows={7}
+                    style={{ resize: "vertical" }}
+                  />
+
+                  <div
+                    style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+                  >
+                    <button
+                      type="button"
+                      className="yes-btn"
+                      onClick={handleSaveNote}
+                      disabled={noteSaving}
+                    >
+                      {noteSaving ? "Spremanje..." : "Spremi"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="user-btn user-btn-danger"
+                      onClick={handleDeleteNote}
+                      disabled={
+                        noteSaving || (!noteTitle.trim() && !noteBody.trim())
+                      }
+                    >
+                      Obriši opis
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="fizio-modal-buttons">
               <button
@@ -363,6 +524,9 @@ export default function UserManagement() {
                   setShowAddOptions(false);
                   setShowManual(false);
                   setShowConfirm(false);
+                  setShowNoteEditor(false);
+                  setNoteTitle("");
+                  setNoteBody("");
                 }}
               >
                 Zatvori
