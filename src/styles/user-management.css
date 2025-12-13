@@ -466,3 +466,89 @@
   border-color: var(--primary);
   box-shadow: 0 0 14px rgba(14, 124, 134, 0.35);
 }
+
+/* =============================== */
+/*   DODACI ZA NOVI ADMIN UI       */
+/*   (NE DIRAJ POSTOJEĆE STILOVE)  */
+/* =============================== */
+
+/* gumb "Dodaj" u headeru (ti ga u kodu imaš s className="fizio-btn-main") */
+.fizio-btn-main {
+  padding: 0.75rem 1.4rem;
+  border-radius: 10px;
+  background: rgba(14, 124, 134, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: var(--text);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.18s ease;
+  width: 100%;
+}
+
+.fizio-btn-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(217, 119, 6, 0.45);
+}
+
+.fizio-btn-main:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* modal textarea (opis/vježbe) */
+.fizio-modal textarea {
+  width: 100%;
+  margin: 0.4rem 0 0.8rem;
+  padding: 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text);
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.35;
+}
+
+/* disabled stanja za sve gumbe (da izgleda normalno kad se spremanje vrti) */
+.user-btn:disabled,
+.yes-btn:disabled,
+.no-btn:disabled,
+.load-more-btn:disabled,
+.quick-visit-btn:disabled,
+.manual-visit-main-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* malo bolji raspored gumba u kartici (da ne pukne na manjim širinama) */
+.fizio-user-buttons {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* "Učitaj još" centriran i punija širina na mobitelu */
+.load-more-btn {
+  width: 100%;
+  max-width: 530px;
+}
+
+/* modal overlay padding na mobitelu */
+@media (max-width: 600px) {
+  .fizio-overlay {
+    padding: 1rem;
+  }
+
+  .fizio-modal {
+    width: calc(100% - 2rem);
+    max-width: 420px;
+  }
+
+  .fizio-user-buttons {
+    justify-content: flex-start;
+  }
+}

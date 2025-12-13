@@ -60,6 +60,9 @@ export default function UserManagement() {
   const [noteBody, setNoteBody] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
 
+  // ✅ NOVO: confirm za brisanje opisa
+  const [confirmDeleteNote, setConfirmDeleteNote] = useState(false);
+
   const docToUser = (d: any): User => ({
     id: d.id,
     name: d.data().name,
@@ -73,9 +76,10 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
+      // ✅ FIX: mora biti isto kao u fetchMoreUsers
       const q = query(
         collection(db, "users"),
-        orderBy("name"),
+        orderBy("phone"),
         limit(PAGE_SIZE)
       );
       const snap = await getDocs(q);
@@ -93,6 +97,8 @@ export default function UserManagement() {
     try {
       if (!lastVisible) return;
 
+      setLoadingMore(true);
+
       const q = query(
         collection(db, "users"),
         orderBy("phone"),
@@ -109,6 +115,8 @@ export default function UserManagement() {
     } catch (e) {
       console.error("❌ fetchMoreUsers:", e);
       setHasMore(false);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -149,6 +157,8 @@ export default function UserManagement() {
       phone: newUserPhone.trim(),
       remainingVisits: 0,
       validUntil: "",
+      noteTitle: "",
+      noteBody: "",
     });
 
     setNewUserName("");
@@ -178,9 +188,11 @@ export default function UserManagement() {
     setShowManual(false);
     setShowConfirm(false);
     setShowAddOptions(false);
+
     setNoteTitle(data?.noteTitle ?? "");
     setNoteBody(data?.noteBody ?? "");
     setShowNoteEditor(false);
+    setConfirmDeleteNote(false);
   };
 
   const handleConfirmEntry = async () => {
@@ -207,7 +219,6 @@ export default function UserManagement() {
     setShowSuccess(true);
     setShowConfirm(false);
     setShowManual(false);
-
     setShowAddOptions(false);
   };
 
@@ -227,6 +238,9 @@ export default function UserManagement() {
       );
       setSuccessMessage(`Opis spremljen za ${selectedUser.name}.`);
       setShowSuccess(true);
+
+      // ✅ nakon spremanja zatvori editor da se vidi preview
+      setShowNoteEditor(false);
     } finally {
       setNoteSaving(false);
     }
@@ -250,6 +264,9 @@ export default function UserManagement() {
 
       setSuccessMessage(`Opis obrisan za ${selectedUser.name}.`);
       setShowSuccess(true);
+
+      // ✅ vrati na preview stanje
+      setShowNoteEditor(false);
     } finally {
       setNoteSaving(false);
     }
@@ -426,6 +443,7 @@ export default function UserManagement() {
                 </button>
               </>
             )}
+
             <hr style={{ margin: "1.2rem 0", opacity: 0.2 }} />
 
             <div style={{ textAlign: "left" }}>
@@ -485,9 +503,13 @@ export default function UserManagement() {
                     placeholder="Upiši opis/vježbe..."
                     value={noteBody}
                     onChange={(e) => setNoteBody(e.target.value)}
-                    rows={7}
-                    style={{ resize: "vertical" }}
+                    rows={9}
+                    style={{ resize: "vertical", minHeight: 180 }}
                   />
+
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {noteBody.length} znakova
+                  </div>
 
                   <div
                     style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
@@ -504,7 +526,7 @@ export default function UserManagement() {
                     <button
                       type="button"
                       className="user-btn user-btn-danger"
-                      onClick={handleDeleteNote}
+                      onClick={() => setConfirmDeleteNote(true)}
                       disabled={
                         noteSaving || (!noteTitle.trim() && !noteBody.trim())
                       }
@@ -527,9 +549,40 @@ export default function UserManagement() {
                   setShowNoteEditor(false);
                   setNoteTitle("");
                   setNoteBody("");
+                  setConfirmDeleteNote(false);
                 }}
               >
                 Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Confirm brisanje opisa */}
+      {confirmDeleteNote && selectedUser && (
+        <div className="fizio-overlay">
+          <div className="fizio-modal">
+            <p>
+              Jesi li siguran da želiš <strong>obrisati opis</strong> za{" "}
+              <strong>{selectedUser.name}</strong>?
+            </p>
+
+            <div className="fizio-modal-buttons">
+              <button
+                className="yes-btn"
+                onClick={async () => {
+                  await handleDeleteNote();
+                  setConfirmDeleteNote(false);
+                }}
+              >
+                Da
+              </button>
+              <button
+                className="no-btn"
+                onClick={() => setConfirmDeleteNote(false)}
+              >
+                Ne
               </button>
             </div>
           </div>
