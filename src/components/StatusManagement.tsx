@@ -179,7 +179,6 @@ export default function StatusManagement() {
     <div className="status-management-container">
       <h2>STATUS TERMINA</h2>
 
-      {/* Gumbi / spinner */}
       <div className="status-actions">
         {loading ? (
           <img
@@ -206,7 +205,6 @@ export default function StatusManagement() {
 
       <div className="status-divider"></div>
 
-      {/* Info poruka */}
       {showInfoModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -218,7 +216,6 @@ export default function StatusManagement() {
         </div>
       )}
 
-      {/* Confirm modal */}
       {showConfirmModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -301,7 +298,6 @@ export default function StatusManagement() {
 
                           {expandedSessionId === session.id && (
                             <div className="reservation-box">
-                              {/* Rezervirani */}
                               {related.filter((r) => r.status === "rezervirano")
                                 .length > 0 && (
                                 <>
@@ -311,7 +307,7 @@ export default function StatusManagement() {
                                       marginBottom: "6px",
                                     }}
                                   >
-                                     Rezervirani:
+                                    Rezervirani:
                                   </div>
                                   {related
                                     .filter((r) => r.status === "rezervirano")
@@ -326,7 +322,6 @@ export default function StatusManagement() {
                                 </>
                               )}
 
-                              {/* Lista čekanja */}
                               {related.filter((r) => r.status === "cekanje")
                                 .length > 0 && (
                                 <>
@@ -359,7 +354,6 @@ export default function StatusManagement() {
                                 </>
                               )}
 
-                              {/* Nema nikoga */}
                               {related.length === 0 && (
                                 <div className="no-reservations">
                                   Nema rezervacija

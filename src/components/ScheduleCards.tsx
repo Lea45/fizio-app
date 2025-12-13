@@ -1,8 +1,6 @@
 import React from "react";
-type RN = React.ReactNode;
 
 import { useEffect, useState } from "react";
-
 
 import AnimatedCollapse from "./AnimatedCollapse";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -63,7 +61,7 @@ export default function ScheduleCards({
   const [label, setLabel] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [showInfoModal, setShowInfoModal] = useState(false);
- const [infoModalMessage, setInfoModalMessage] = useState<React.ReactNode>("");
+  const [infoModalMessage, setInfoModalMessage] = useState<React.ReactNode>("");
 
   const [initialLoad, setInitialLoad] = useState(true);
   const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({});
@@ -166,7 +164,6 @@ export default function ScheduleCards({
       return;
     }
 
-    // 1) remainingVisits + validUntil
     const userSnap = await getDocs(
       query(collection(db, "users"), where("phone", "==", phone))
     );
@@ -194,7 +191,6 @@ export default function ScheduleCards({
       }
     }
 
-    // 2) termin nije u prošlosti
     const now = new Date();
     const [d, m, y] = session.date.split(".");
     const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
@@ -208,26 +204,21 @@ export default function ScheduleCards({
       setShowInfoModal(true);
       return;
     }
+    const adminPhone = "0000"; // LOZINKA ADMIN
+    if (phone !== adminPhone) {
+      const sameDayReservation = reservations.find(
+        (r) =>
+          r.phone === phone &&
+          sessions.find((s) => s.id === r.sessionId)?.date === session.date
+      );
 
-    // 3) max 1 termin dnevno (osim admin broja, ako želiš)
-// 3) max 1 termin dnevno (osim admin broja)
-const adminPhone = "0000"; /////// PROMIJENI LOZINKU
-if (phone !== adminPhone) {
-  const sameDayReservation = reservations.find(
-    (r) =>
-      r.phone === phone &&
-      sessions.find((s) => s.id === r.sessionId)?.date === session.date
-  );
+      if (sameDayReservation) {
+        setInfoModalMessage("⛔ Dopuštena je samo jedna rezervacija u danu.");
+        setShowInfoModal(true);
+        return;
+      }
+    }
 
-  if (sameDayReservation) {
-    setInfoModalMessage("⛔ Dopuštena je samo jedna rezervacija u danu.");
-    setShowInfoModal(true);
-    return;
-  }
-}
-
-
-    // 4) već rezerviran ovaj termin
     const already = reservations.find(
       (r) => r.sessionId === session.id && r.phone === phone
     );
@@ -236,7 +227,6 @@ if (phone !== adminPhone) {
       return;
     }
 
-    // 5) transakcija (rezervirano / čekanje + update bookedSlots + createdAt)
     try {
       const {
         id: newId,
@@ -285,7 +275,6 @@ if (phone !== adminPhone) {
           return { id: newReservationRef.id, status };
         });
 
-      // lokalni state
       const newReservation: Reservation = {
         id: newId,
         phone,
@@ -304,7 +293,6 @@ if (phone !== adminPhone) {
         );
       }
 
-      // 6) smanji remainingVisits
       try {
         const userSnap2 = await getDocs(
           query(collection(db, "users"), where("phone", "==", phone))
@@ -320,27 +308,25 @@ if (phone !== adminPhone) {
         console.error("❌ Greška pri ažuriranju remainingVisits:", err);
       }
 
-      // 7) poruka
-     // 7) poruka
-setInfoModalMessage(
-  status === "rezervirano" ? (
-    <>
-      ✅ Rezervirali ste termin:
-      <br />
-      {session.date}
-      <br />
-      {session.time}
-    </>
-  ) : (
-    <>
-      🕐 Dodani ste na listu čekanja:
-      <br />
-      {session.date}
-      <br />
-      {session.time}
-    </>
-  )
-);
+      setInfoModalMessage(
+        status === "rezervirano" ? (
+          <>
+            ✅ Rezervirali ste termin:
+            <br />
+            {session.date}
+            <br />
+            {session.time}
+          </>
+        ) : (
+          <>
+            🕐 Dodani ste na listu čekanja:
+            <br />
+            {session.date}
+            <br />
+            {session.time}
+          </>
+        )
+      );
 
       setShowInfoModal(true);
       onReservationMade();
@@ -377,10 +363,8 @@ setInfoModalMessage(
         const sessionSnap = await t.get(sessionRef);
         const sessionData = sessionSnap.data() as Session;
 
-        // 1) obriši rezervaciju
         t.delete(doc(db, "reservations", existing.id));
 
-        // 2) oslobodi mjesto + lista čekanja
         let newBooked = sessionData.bookedSlots;
         if (existing.status === "rezervirano") {
           newBooked = Math.max(0, newBooked - 1);
@@ -398,7 +382,6 @@ setInfoModalMessage(
             if (nextSnap.exists() && nextData.status === "cekanje") {
               t.update(nextRef, { status: "rezervirano" });
               newBooked += 1;
-              // ⛔ ovdje namjerno NE šaljemo WhatsApp poruku
             }
           }
         }
@@ -406,7 +389,6 @@ setInfoModalMessage(
         t.update(sessionRef, { bookedSlots: newBooked });
       });
 
-      // 3) vrati dolazak ako je na vrijeme
       if (canCancel) {
         const userSnap = await getDocs(
           query(collection(db, "users"), where("phone", "==", phone))
@@ -420,14 +402,14 @@ setInfoModalMessage(
       }
 
       setInfoModalMessage(
-  <>
-    Otkazali ste termin:
-    <br />
-    {session.date}
-    <br />
-    {session.time}
-  </>
-);
+        <>
+          Otkazali ste termin:
+          <br />
+          {session.date}
+          <br />
+          {session.time}
+        </>
+      );
 
       setShowInfoModal(true);
       fetchData(false);
@@ -591,25 +573,22 @@ setInfoModalMessage(
                       </div>
                     ) : null}
 
- {/* Ako TERMIN NIJE rezerviran -> prikaz gumba za rezervaciju.
-    Ako JE rezerviran -> nema gumba, samo status iznad. */}
-{!reserved && (
-  <button
-    className={`reserve-button ${
-      isPast ? "reserve-button-past" : isFull ? "full" : ""
-    }`}
-    disabled={isPast}
-    onClick={() => !isPast && setConfirmSession(s)}
-  >
-    {isPast
-      ? "Termin je prošao"
-      : isFull
-      ? "Lista čekanja"
-      : "Rezerviraj"}
-  </button>
-)}
-
-
+                    {}
+                    {!reserved && (
+                      <button
+                        className={`reserve-button ${
+                          isPast ? "reserve-button-past" : isFull ? "full" : ""
+                        }`}
+                        disabled={isPast}
+                        onClick={() => !isPast && setConfirmSession(s)}
+                      >
+                        {isPast
+                          ? "Termin je prošao"
+                          : isFull
+                          ? "Lista čekanja"
+                          : "Rezerviraj"}
+                      </button>
+                    )}
                   </div>
                 );
               })}

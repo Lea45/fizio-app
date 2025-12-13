@@ -194,13 +194,11 @@ export default function UserManagement() {
     confirmText = "spremiti bez promjene dolazaka";
   }
 
-  // Brzi odabir paketa +8 / +12
   const handleQuickAdd = (value: number) => {
     setAdditionalVisits(String(value));
     setShowConfirm(true);
   };
 
-  // Otvori ručni unos
   const openManualInput = () => {
     setAdditionalVisits("");
     setShowManual(true);
@@ -211,7 +209,6 @@ export default function UserManagement() {
       <div className="fizio-user-container">
         <h2>Upravljanje korisnicima</h2>
 
-        {/* Dodavanje korisnika */}
         <div className="fizio-user-inputs">
           <input
             type="text"
@@ -234,7 +231,6 @@ export default function UserManagement() {
 
         <div className="status-divider"></div>
 
-        {/* Search */}
         <div className="fizio-search-box">
           <input
             type="text"
@@ -244,7 +240,6 @@ export default function UserManagement() {
           />
         </div>
 
-        {/* Lista korisnika */}
         <div className="fizio-user-list">
           {users.map((user) => (
             <div className="fizio-user-card" key={user.id}>
@@ -283,7 +278,6 @@ export default function UserManagement() {
         )}
       </div>
 
-      {/* MODAL – brisanje korisnika */}
       {userToDelete && (
         <div className="fizio-overlay">
           <div className="fizio-modal">
@@ -303,7 +297,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* MODAL – detalji / dodavanje dolazaka */}
       {selectedUser && (
         <div className="fizio-overlay">
           <div className="fizio-modal">
@@ -379,7 +372,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* MODAL – ručni unos dolazaka */}
       {showManual && selectedUser && (
         <div className="fizio-overlay">
           <div className="fizio-modal">
@@ -421,7 +413,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* MODAL – potvrda spremanja promjene dolazaka */}
       {showConfirm && selectedUser && (
         <div className="fizio-overlay">
           <div className="fizio-modal">
@@ -442,7 +433,6 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* MODAL – uspjeh */}
       {showSuccess && (
         <div className="fizio-overlay">
           <div className="fizio-modal">

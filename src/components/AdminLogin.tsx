@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 type AdminLoginProps = {
   onAdminLoginSuccess: () => void;
@@ -22,7 +23,7 @@ export default function AdminLogin({
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          const data = docSnap.data();
+          const data = docSnap.data() as any;
           setAdminCode(data.code);
         } else {
           console.error("Nema admin lozinke u bazi!");
@@ -37,19 +38,38 @@ export default function AdminLogin({
     fetchAdminCode();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!adminCode) {
       setStatus("⛔ Admin lozinka nije učitana.");
       return;
     }
 
-    if (codeInput === adminCode) {
-      setStatus("✅ Uspješna prijava.");
-      localStorage.setItem("admin", "true");
-      onAdminLoginSuccess();
-    } else {
+    if (codeInput !== adminCode) {
       setStatus("⛔ Pogrešna lozinka.");
+      return;
+    }
+
+    try {
+      setStatus("⏳ Prijava...");
+
+      // ✅ 1) PIN je točan → sad se TIHO prijavi u Firebase Auth
+      // OVO su podaci admin usera kojeg si kreirala u Firebase Authentication
+      await signInWithEmailAndPassword(
+        auth,
+        "varzic.lea@gmail.com",        // <-- promijeni na svoj admin email
+        "Fizio.2580" // <-- promijeni na password iz Auth
+      );
+
+      // ✅ 2) (opcionalno) zadrži tvoj localStorage gate, ali sad nije sigurnost nego UI pomoć
+      localStorage.setItem("admin", "true");
+
+      setStatus("✅ Uspješna prijava.");
+      onAdminLoginSuccess();
+    } catch (err) {
+      console.error("Admin Firebase Auth login error:", err);
+      setStatus("⛔ Greška pri prijavi (Firebase Auth).");
     }
   };
 
@@ -77,13 +97,16 @@ export default function AdminLogin({
         {status && (
           <p
             className={
-              status.startsWith("✅") ? "status-success" : "status-error"
+              status.startsWith("✅") || status.startsWith("⏳")
+                ? "status-success"
+                : "status-error"
             }
           >
             {status}
           </p>
         )}
       </div>
+
       <button onClick={onBackToHome} className="back-btn">
         ← Nazad
       </button>

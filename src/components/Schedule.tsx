@@ -6,7 +6,7 @@ type Props = {
   onShowPopup: (message: string) => void;
 };
 
-const Schedule = ({ onReservationMade, refreshKey, onShowPopup }: Props) => {
+const Schedule = ({ onReservationMade, onShowPopup }: Props) => {
   return (
     <ScheduleCards
       onReservationMade={onReservationMade}

@@ -3,7 +3,7 @@ import Schedule from "./Schedule";
 import MyBookings from "./MyBookings";
 import Profile from "./Profile";
 import "../styles/client-dashboard.css";
-import { FaCalendarAlt, FaCheckCircle, FaUser } from "react-icons/fa";
+import { FaCalendarAlt, FaUser } from "react-icons/fa";
 
 type Tab = "raspored" | "moji-termini" | "profil";
 
@@ -42,9 +42,7 @@ export default function ClientDashboard() {
     <div className="fizio-client-dashboard">
       <div className="fizio-client-tabs">
         <button
-          className={`tab-button ${
-            activeTab === "raspored" ? "active" : ""
-          }`}
+          className={`tab-button ${activeTab === "raspored" ? "active" : ""}`}
           onClick={() => setActiveTab("raspored")}
         >
           <FaCalendarAlt /> Raspored
@@ -56,13 +54,11 @@ export default function ClientDashboard() {
           }`}
           onClick={() => setActiveTab("moji-termini")}
         >
-           Moji termini
+          Moji termini
         </button>
 
         <button
-          className={`tab-button ${
-            activeTab === "profil" ? "active" : ""
-          }`}
+          className={`tab-button ${activeTab === "profil" ? "active" : ""}`}
           onClick={() => setActiveTab("profil")}
         >
           <FaUser /> Profil

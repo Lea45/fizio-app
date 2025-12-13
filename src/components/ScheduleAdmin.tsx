@@ -10,14 +10,12 @@ import {
   setDoc,
   getDoc,
 } from "firebase/firestore";
-import spinner from "./spinning-dots.svg";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
   FaCalendarAlt,
   FaEdit,
   FaRegListAlt,
-  FaRecycle,
   FaDownload,
   FaThumbtack,
   FaCheckCircle,
@@ -47,7 +45,7 @@ export default function ScheduleAdmin() {
   const [newTime, setNewTime] = useState("");
   const [newSlots, setNewSlots] = useState(5);
   const [showModal, setShowModal] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
   const [confirmDelete, setConfirmDelete] = useState<{
     id: string;
     date: string;
@@ -55,11 +53,9 @@ export default function ScheduleAdmin() {
   } | null>(null);
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmPullTemplate, setConfirmPullTemplate] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showMissingLabelModal, setShowMissingLabelModal] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({});
-  const [disabledDays, setDisabledDays] = useState<string[]>([]);
 
   const [noteModalDate, setNoteModalDate] = useState<string | null>(null);
   const [confirmDisableDay, setConfirmDisableDay] = useState<string | null>(
@@ -89,6 +85,7 @@ export default function ScheduleAdmin() {
       ...doc.data(),
     })) as Session[];
     setSessions(fetched.filter((s) => s.date));
+
     const reservationsSnap = await getDocs(collection(db, "reservations"));
     const allReservations = reservationsSnap.docs.map((d) => d.data());
     setReservations(allReservations);
@@ -206,7 +203,6 @@ export default function ScheduleAdmin() {
     await fetchSessions();
 
     setShowModal("✅ Raspored je uspješno generiran prema odabranom tjednu.");
-
     setView("draft");
   };
 
@@ -241,45 +237,6 @@ export default function ScheduleAdmin() {
     setView("sessions");
   };
 
-  const resetDefaultSchedule = async () => {
-    const dani = [
-      "PONEDJELJAK",
-      "UTORAK",
-      "SRIJEDA",
-      "ČETVRTAK",
-      "PETAK",
-      "SUBOTA",
-    ];
-    const termini = [
-      "07:00 - 08:00",
-      "08:00 - 09:00",
-      "09:00 - 10:00",
-      "16:00 - 17:00",
-      "17:00 - 18:00",
-      "18:00 - 19:00",
-    ];
-
-    const existing = await getDocs(collection(db, "defaultSchedule"));
-    await Promise.all(
-      existing.docs.map((d) => deleteDoc(doc(db, "defaultSchedule", d.id)))
-    );
-
-    for (const dan of dani) {
-      for (const time of termini) {
-        await addDoc(collection(db, "defaultSchedule"), {
-          date: dan,
-          time,
-          maxSlots: 5,
-          bookedSlots: 0,
-          active: true,
-        });
-      }
-    }
-
-    setToastMessage("✅ Defaultni raspored je postavljen");
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   const formatDay = (dateStr: string): string => {
     const [d, m, y] = dateStr.split(".").map((s) => parseInt(s.trim()));
     const date = new Date(y, m - 1, d);
@@ -294,6 +251,7 @@ export default function ScheduleAdmin() {
     ];
     return dani[date.getDay()];
   };
+
   const getBrojRezervacija = (sessionId: string) =>
     reservations.filter(
       (r) => r.sessionId === sessionId && r.status === "rezervirano"
@@ -308,12 +266,6 @@ export default function ScheduleAdmin() {
   return (
     <div className="schedule-admin-container">
       <h1 className="title1">Upravljanje Terminima</h1>
-
-      {isLoading && (
-        <div className="spinner-overlay">
-          <img src={spinner} alt="Učitavanje..." className="spinner" />
-        </div>
-      )}
 
       <div className="tab-switcher">
         <button
@@ -442,7 +394,7 @@ export default function ScheduleAdmin() {
         </>
       )}
 
-      {toastMessage && <div className="custom-toast">{toastMessage}</div>}
+   
 
       {addSessionDate && (
         <div className="modal-overlay">
@@ -628,7 +580,9 @@ export default function ScheduleAdmin() {
             >
               Da, onemogući
             </button>
-            <button onClick={() => setConfirmDisableDay(null)}>Odustani</button>
+            <button onClick={() => setConfirmDisableDay(null)}>
+              Odustani
+            </button>
           </div>
         </div>
       )}
@@ -699,7 +653,6 @@ export default function ScheduleAdmin() {
             }
           })
           .map(([date, list]) => {
-            if (view === "draft" && disabledDays.includes(date)) return null;
             return (
               <div key={date} className="session-group">
                 <h4>{view === "template" ? date : formatDay(date)}</h4>
@@ -719,9 +672,7 @@ export default function ScheduleAdmin() {
                     <button
                       className="add-button-small danger"
                       onClick={() => {
-                        if (!disabledDays.includes(date)) {
-                          setConfirmDisableDay(date);
-                        }
+                        setConfirmDisableDay(date);
                       }}
                     >
                       🚫 Onemogući dan
@@ -769,16 +720,14 @@ export default function ScheduleAdmin() {
                 {(view === "draft" ||
                   view === "template" ||
                   view === "sessions") && (
-                  <>
-                    <button
-                      className="add-button-small"
-                      onClick={() => setAddSessionDate(date)}
-                      style={{ marginTop: "0.5rem" }}
-                    >
-                      <FaPlusCircle style={{ marginRight: "0.4rem" }} />
-                      Dodaj termin
-                    </button>
-                  </>
+                  <button
+                    className="add-button-small"
+                    onClick={() => setAddSessionDate(date)}
+                    style={{ marginTop: "0.5rem" }}
+                  >
+                    <FaPlusCircle style={{ marginRight: "0.4rem" }} />
+                    Dodaj termin
+                  </button>
                 )}
               </div>
             );

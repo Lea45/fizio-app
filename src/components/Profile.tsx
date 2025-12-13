@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-} from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import "../styles/profile.css";
-import {
-  FaPhone,
-  FaUser,
-  FaSignOutAlt,
-  FaCheckCircle,
-  FaClock,
-  FaFolderOpen,
-} from "react-icons/fa";
+import { FaPhone, FaUser, FaSignOutAlt, FaFolderOpen } from "react-icons/fa";
 
 type HistoryItem = {
   id: string;
@@ -25,20 +13,15 @@ type HistoryItem = {
 
 export default function Profile() {
   const storedPhone = localStorage.getItem("phone");
-  const storedUserId = localStorage.getItem("userId");
 
   const [phone] = useState(storedPhone || "");
-  const [userId] = useState(storedUserId || "");
+
   const [name, setName] = useState("");
   const [remainingVisits, setRemainingVisits] = useState<number | null>(null);
-  const [validUntil, setValidUntil] = useState("");
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // ============================
-  // USER PODACI
-  // ============================
   useEffect(() => {
     if (!phone) return;
 
@@ -51,57 +34,45 @@ export default function Profile() {
 
         setName(userData.name || "");
         setRemainingVisits(userData.remainingVisits ?? null);
-        setValidUntil(userData.validUntil ?? "");
       }
     });
 
     return () => unsubscribe();
   }, [phone]);
 
-  // ============================
-  // POVIJEST TERMINA – FIRESTORE
-  // ============================
-// ============================
-// POVIJEST TERMINA – FIRESTORE
-// ============================
-useEffect(() => {
-  if (!phone) return;
+  useEffect(() => {
+    if (!phone) return;
 
-  const qHistory = query(
-    collection(db, "reservations"),
-    where("phone", "==", phone),
-    where("status", "==", "rezervirano")
-  );
+    const qHistory = query(
+      collection(db, "reservations"),
+      where("phone", "==", phone),
+      where("status", "==", "rezervirano")
+    );
 
-  const unsubscribe = onSnapshot(qHistory, (snap) => {
-    const items: HistoryItem[] = snap.docs.map((docSnap) => {
-      const data = docSnap.data() as any;
+    const unsubscribe = onSnapshot(qHistory, (snap) => {
+      const items: HistoryItem[] = snap.docs.map((docSnap) => {
+        const data = docSnap.data() as any;
 
-      const createdAtMs =
-        data.createdAt && typeof data.createdAt.toMillis === "function"
-          ? data.createdAt.toMillis()
-          : 0;
+        const createdAtMs =
+          data.createdAt && typeof data.createdAt.toMillis === "function"
+            ? data.createdAt.toMillis()
+            : 0;
 
-      return {
-        id: docSnap.id,
-        date: data.date || data.displayDate || "",
-        time: data.time || "",
-        createdAt: createdAtMs,
-      };
+        return {
+          id: docSnap.id,
+          date: data.date || data.displayDate || "",
+          time: data.time || "",
+          createdAt: createdAtMs,
+        };
+      });
+
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setHistory(items);
     });
 
-    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    setHistory(items);
-  });
+    return () => unsubscribe();
+  }, [phone]);
 
-  return () => unsubscribe();
-}, [phone]);
-
-
-
-  // ============================
-  // ODJAVA
-  // ============================
   const handleLogout = () => {
     localStorage.removeItem("phone");
     localStorage.removeItem("userId");
@@ -109,24 +80,18 @@ useEffect(() => {
     window.location.reload();
   };
 
-  const formatDate = (iso: string) => {
-    if (!iso) return "";
-    const [y, m, d] = iso.split("-");
-    return `${d}.${m}.${y}.`;
-  };
-
   return (
     <div className="profile">
-      {/* ======================== */}
-      {/* HEADER */}
-      {/* ======================== */}
+      {}
+      {}
+      {}
       <div className="profile-header">
         <h2 className="profile-title">Moj profil</h2>
       </div>
 
-      {/* ======================== */}
-      {/* OSOBNI PODACI */}
-      {/* ======================== */}
+      {}
+      {}
+      {}
       <div className="profile-card">
         <label className="profile-label">
           <FaUser style={{ marginRight: "8px" }} />
@@ -143,22 +108,21 @@ useEffect(() => {
         <div className="profile-value">{phone}</div>
       </div>
 
-      {/* ======================== */}
-      {/* DOLASCI — POMAKNUTO IZNAD GUMBA */}
-      {/* ======================== */}
+      {}
+      {}
+      {}
       {remainingVisits !== null && (
-  <div className="profile-card visits">
-    <div className="visits-row-perfect">
-      <span className="visits-clean-title">Preostali dolasci:</span>
-      <span className="visits-clean-number">{remainingVisits}</span>
-    </div>
-  </div>
-)}
+        <div className="profile-card visits">
+          <div className="visits-row-perfect">
+            <span className="visits-clean-title">Preostali dolasci:</span>
+            <span className="visits-clean-number">{remainingVisits}</span>
+          </div>
+        </div>
+      )}
 
-
-      {/* ======================== */}
-      {/* GUMBI – POVIJEST + ODJAVA */}
-      {/* ======================== */}
+      {}
+      {}
+      {}
       <div className="profile-buttons-row">
         <button
           className="profile-history-button"
@@ -174,9 +138,6 @@ useEffect(() => {
         </button>
       </div>
 
-      {/* ======================== */}
-      {/* POPUP – POVIJEST TERMINA */}
-      {/* ======================== */}
       {showHistoryModal && (
         <div
           className="profile-history-overlay"
@@ -208,8 +169,6 @@ useEffect(() => {
                       <span className="history-date">{h.date}</span>
                       <span className="history-time">{h.time}</span>
                     </div>
-
-                    
                   </div>
                 ))}
               </div>
