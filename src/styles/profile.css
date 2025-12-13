@@ -304,3 +304,18 @@
     font-size: 1.5rem;
   }
 }
+
+.profile-note-card {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-note-title {
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.profile-note-body {
+  opacity: 0.92;
+  line-height: 1.35;
+}

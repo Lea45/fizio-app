@@ -13,11 +13,14 @@ type HistoryItem = {
 
 export default function Profile() {
   const storedPhone = localStorage.getItem("phone");
-
   const [phone] = useState(storedPhone || "");
 
   const [name, setName] = useState("");
   const [remainingVisits, setRemainingVisits] = useState<number | null>(null);
+
+  // ✅ NOVO: opis / vježbe (read-only)
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteBody, setNoteBody] = useState("");
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -34,6 +37,10 @@ export default function Profile() {
 
         setName(userData.name || "");
         setRemainingVisits(userData.remainingVisits ?? null);
+
+        // ✅ NOVO
+        setNoteTitle(userData.noteTitle || "");
+        setNoteBody(userData.noteBody || "");
       }
     });
 
@@ -80,18 +87,15 @@ export default function Profile() {
     window.location.reload();
   };
 
+  const hasNote =
+    (noteBody || "").trim().length > 0 || (noteTitle || "").trim().length > 0;
+
   return (
     <div className="profile">
-      {}
-      {}
-      {}
       <div className="profile-header">
         <h2 className="profile-title">Moj profil</h2>
       </div>
 
-      {}
-      {}
-      {}
       <div className="profile-card">
         <label className="profile-label">
           <FaUser style={{ marginRight: "8px" }} />
@@ -108,9 +112,6 @@ export default function Profile() {
         <div className="profile-value">{phone}</div>
       </div>
 
-      {}
-      {}
-      {}
       {remainingVisits !== null && (
         <div className="profile-card visits">
           <div className="visits-row-perfect">
@@ -120,9 +121,18 @@ export default function Profile() {
         </div>
       )}
 
-      {}
-      {}
-      {}
+      {/* ✅ NOVO: Opis / vježbe (read-only) */}
+      {hasNote && (
+        <div className="profile-card profile-note-card">
+          <div className="profile-note-title">
+            {noteTitle?.trim() || "Vježbe / upute"}
+          </div>
+          <div className="profile-note-body" style={{ whiteSpace: "pre-line" }}>
+            {noteBody}
+          </div>
+        </div>
+      )}
+
       <div className="profile-buttons-row">
         <button
           className="profile-history-button"
