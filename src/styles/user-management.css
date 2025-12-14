@@ -170,6 +170,7 @@
 .user-btn {
   padding: 0.45rem 1.1rem;
   border-radius: 12px;
+  width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.7);
   font-size: 0.85rem;
   font-weight: 600;
@@ -332,6 +333,27 @@
   cursor: pointer;
 }
 
+.save-btn {
+  padding: 0.55rem 1.4rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  border: 1px solid rgba(217, 119, 6, 0.9);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+
+.spremi-btn {
+  padding: 0.55rem 1.4rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  border: 1px solid rgba(217, 119, 6, 0.9);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+  width: 35%;
+}
 .no-btn {
   padding: 0.55rem 1.4rem;
   border-radius: var(--radius-sm);

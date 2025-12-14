@@ -455,7 +455,7 @@ export default function UserManagement() {
                   alignItems: "center",
                 }}
               >
-                <h4 style={{ margin: 0 }}>Opis / vježbe</h4>
+               
 
                 <button
                   type="button"
@@ -507,16 +507,14 @@ export default function UserManagement() {
                     style={{ resize: "vertical", minHeight: 180 }}
                   />
 
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {noteBody.length} znakova
-                  </div>
+               
 
                   <div
                     style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
                   >
                     <button
                       type="button"
-                      className="yes-btn"
+                      className="save-btn"
                       onClick={handleSaveNote}
                       disabled={noteSaving}
                     >
@@ -607,14 +605,14 @@ export default function UserManagement() {
 
             <div className="fizio-modal-buttons">
               <button
-                className="yes-btn"
+                className="spremi-btn"
                 onClick={() => {
                   if (!additionalVisits) return;
                   setShowManual(false);
                   setShowConfirm(true);
                 }}
               >
-                Dalje
+                Spremi
               </button>
               <button
                 className="no-btn"

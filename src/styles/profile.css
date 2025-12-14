@@ -319,3 +319,36 @@
   opacity: 0.92;
   line-height: 1.35;
 }
+
+.profile-exercises-button{
+  width: 100%;
+  margin: 14px 0 20px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,0.25);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92) !important;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: block;
+}
+
+.profile-exercises-button:hover{
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+
+}
+
+.profile-exercises-button:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.profile-exercises-body {
+  margin-top: 10px;
+  line-height: 1.45;
+  opacity: 0.92;
+}

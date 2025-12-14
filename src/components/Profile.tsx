@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
 import { db } from "../firebase";
 import "../styles/profile.css";
 import { FaPhone, FaUser, FaSignOutAlt, FaFolderOpen } from "react-icons/fa";
@@ -18,35 +18,43 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [remainingVisits, setRemainingVisits] = useState<number | null>(null);
 
-  // ✅ NOVO: opis / vježbe (read-only)
+  // ✅ vježbe (read-only)
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
+  const [showExercisesModal, setShowExercisesModal] = useState(false);
 
+  // ✅ povijest termina
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  // ✅ User podatke čitaj po userId (najstabilnije)
   useEffect(() => {
-    if (!phone) return;
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
 
-    const qUser = query(collection(db, "users"), where("phone", "==", phone));
+    const ref = doc(db, "users", userId);
 
-    const unsubscribe = onSnapshot(qUser, (snap) => {
-      if (!snap.empty) {
-        const userDoc = snap.docs[0];
-        const userData = userDoc.data() as any;
-
-        setName(userData.name || "");
-        setRemainingVisits(userData.remainingVisits ?? null);
-
-        // ✅ NOVO
-        setNoteTitle(userData.noteTitle || "");
-        setNoteBody(userData.noteBody || "");
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (!snap.exists()) {
+        setName("");
+        setRemainingVisits(null);
+        setNoteTitle("");
+        setNoteBody("");
+        return;
       }
+
+      const userData = snap.data() as any;
+
+      setName(userData.name || "");
+      setRemainingVisits(userData.remainingVisits ?? null);
+      setNoteTitle(userData.noteTitle || "");
+      setNoteBody(userData.noteBody || "");
     });
 
     return () => unsubscribe();
-  }, [phone]);
+  }, []);
 
+  // Povijest termina ostaje po phone
   useEffect(() => {
     if (!phone) return;
 
@@ -87,8 +95,8 @@ export default function Profile() {
     window.location.reload();
   };
 
-  const hasNote =
-    (noteBody || "").trim().length > 0 || (noteTitle || "").trim().length > 0;
+  const exercisesText = (noteBody || "").trim();
+  const exercisesTitle = (noteTitle || "").trim() || "Vježbe";
 
   return (
     <div className="profile">
@@ -121,17 +129,13 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ✅ NOVO: Opis / vježbe (read-only) */}
-      {hasNote && (
-        <div className="profile-card profile-note-card">
-          <div className="profile-note-title">
-            {noteTitle?.trim() || "Vježbe / upute"}
-          </div>
-          <div className="profile-note-body" style={{ whiteSpace: "pre-line" }}>
-            {noteBody}
-          </div>
-        </div>
-      )}
+      {/* ✅ GUMB: POGLEDAJ VJEŽBE (iznad povijesti) */}
+      <button
+        className="profile-exercises-button"
+        onClick={() => setShowExercisesModal(true)}
+      >
+        Pogledaj vježbe
+      </button>
 
       <div className="profile-buttons-row">
         <button
@@ -148,6 +152,37 @@ export default function Profile() {
         </button>
       </div>
 
+      {/* ✅ POPUP: VJEŽBE (isti stil kao povijest) */}
+      {showExercisesModal && (
+        <div
+          className="profile-history-overlay"
+          onClick={() => setShowExercisesModal(false)}
+        >
+          <div
+            className="profile-history-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="profile-history-header">
+              <h3>{exercisesTitle}</h3>
+              <button
+                className="profile-history-close"
+                onClick={() => setShowExercisesModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              className="profile-exercises-body"
+              style={{ whiteSpace: "pre-line" }}
+            >
+              {exercisesText ? exercisesText : "Trenutno nema dodanih vježbi."}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POVIJEST TERMINA POPUP */}
       {showHistoryModal && (
         <div
           className="profile-history-overlay"
