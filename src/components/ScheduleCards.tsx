@@ -1,5 +1,4 @@
 import React from "react";
-
 import { useEffect, useState } from "react";
 
 import AnimatedCollapse from "./AnimatedCollapse";
@@ -9,7 +8,6 @@ import { db } from "../firebase";
 import {
   collection,
   getDocs,
-  updateDoc,
   doc,
   getDoc,
   query,
@@ -38,6 +36,7 @@ type Session = {
 type Reservation = {
   id: string;
   phone: string;
+  userId?: string;
   name?: string;
   sessionId: string;
   status: "rezervirano" | "cekanje";
@@ -68,6 +67,7 @@ export default function ScheduleCards({
 
   const phone = localStorage.getItem("phone");
   const name = localStorage.getItem("userName");
+  const userId = localStorage.getItem("userId");
 
   const fetchData = async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -159,90 +159,41 @@ export default function ScheduleCards({
     );
 
   const reserve = async (session: Session) => {
-    if (!phone || !name) {
-      onShowPopup("📱 Prijavite se.");
-      return;
-    }
-
-    const userSnap = await getDocs(
-      query(collection(db, "users"), where("phone", "==", phone))
-    );
-    if (!userSnap.empty) {
-      const userDoc = userSnap.docs[0];
-      const userData = userDoc.data() as any;
-      const current = userData.remainingVisits ?? 0;
-      const validUntilRaw = userData.validUntil;
-
-      let validUntilDate: Date | null = null;
-      if (validUntilRaw) {
-        if (typeof validUntilRaw.toDate === "function") {
-          validUntilDate = validUntilRaw.toDate();
-        } else {
-          validUntilDate = new Date(validUntilRaw);
-        }
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (current <= -2 || (validUntilDate && validUntilDate < today)) {
-        onShowPopup("⛔ Vaši dolasci su istekli. Uplatite nove dolaske.");
-        return;
-      }
-    }
-
-    const now = new Date();
-    const [d, m, y] = session.date.split(".");
-    const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    const startTime = session.time.split(" - ")[0].trim();
-    const [hours, minutes] = startTime.split(":").map(Number);
-    const sessionDateTime = new Date(dateISO);
-    sessionDateTime.setHours(hours, minutes, 0, 0);
-
-    if (sessionDateTime.getTime() < now.getTime()) {
-      setInfoModalMessage("⛔ Termin je završio. Rezervacija nije moguća.");
-      setShowInfoModal(true);
-      return;
-    }
-    const adminPhone = "0000"; // LOZINKA ADMIN
-    if (phone !== adminPhone) {
-      const sameDayReservation = reservations.find(
-        (r) =>
-          r.phone === phone &&
-          sessions.find((s) => s.id === r.sessionId)?.date === session.date
-      );
-
-      if (sameDayReservation) {
-        setInfoModalMessage("⛔ Dopuštena je samo jedna rezervacija u danu.");
-        setShowInfoModal(true);
-        return;
-      }
-    }
-
-    const already = reservations.find(
-      (r) => r.sessionId === session.id && r.phone === phone
-    );
-    if (already) {
-      onShowPopup("⛔ Već ste prijavljeni.");
+    if (!phone || !name || !userId) {
+      onShowPopup("📱 Prijavite se ponovno.");
       return;
     }
 
     try {
-      const {
-        id: newId,
-        status,
-      }: { id: string; status: "rezervirano" | "cekanje" } =
-        await runTransaction(db, async (transaction) => {
+      const result = await runTransaction(
+        db,
+        async (t): Promise<{ status: "rezervirano" | "cekanje" }> => {
+          // USER (direktno po userId)
+          const userRef = doc(db, "users", userId);
+          const userSnap = await t.get(userRef);
+          if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
+
+          const userData = userSnap.data() as any;
+
+          // SESSION
           const sessionRef = doc(db, "sessions", session.id);
-          const sessionDoc = await transaction.get(sessionRef);
+          const sessionSnap = await t.get(sessionRef);
+          if (!sessionSnap.exists()) throw new Error("Termin ne postoji.");
 
-          if (!sessionDoc.exists()) {
-            throw new Error("Session ne postoji.");
-          }
+          const sessionData = sessionSnap.data() as any;
 
-          const sessionData = sessionDoc.data() as Session;
+          // Provjera: već prijavljen?
+          const alreadySnap = await getDocs(
+            query(
+              collection(db, "reservations"),
+              where("sessionId", "==", session.id),
+              where("phone", "==", phone)
+            )
+          );
+          if (!alreadySnap.empty) throw new Error("Već ste prijavljeni.");
 
-          const existingResSnap = await getDocs(
+          // Broj rezerviranih
+          const resSnap = await getDocs(
             query(
               collection(db, "reservations"),
               where("sessionId", "==", session.id),
@@ -250,66 +201,60 @@ export default function ScheduleCards({
             )
           );
 
-          const brojRezervacija = existingResSnap.size;
           const status: "rezervirano" | "cekanje" =
-            brojRezervacija < sessionData.maxSlots ? "rezervirano" : "cekanje";
+            resSnap.size < Number(sessionData.maxSlots ?? 0)
+              ? "rezervirano"
+              : "cekanje";
 
-          const newReservationRef = doc(collection(db, "reservations"));
-
-          transaction.set(newReservationRef, {
+          // Nova rezervacija
+          const newResRef = doc(collection(db, "reservations"));
+          t.set(newResRef, {
             phone,
             name,
+            userId,
             sessionId: session.id,
             date: session.date,
             time: session.time,
             status,
             createdAt: new Date(),
-            notified: false,
             refunded: false,
+            notified: false,
           });
 
-          transaction.update(sessionRef, {
-            bookedSlots: brojRezervacija + 1,
-          });
+          // Ako je REZERVIRANO → -1 + pastSessions
+          if (status === "rezervirano") {
+            const remaining = Number(userData.remainingVisits ?? 0);
+            if (remaining <= 0) throw new Error("Nema dolazaka.");
 
-          return { id: newReservationRef.id, status };
-        });
+            const past = Array.isArray(userData.pastSessions)
+              ? userData.pastSessions
+              : [];
+            const alreadyInPast = past.some(
+              (p: any) => p.sessionId === session.id
+            );
 
-      const newReservation: Reservation = {
-        id: newId,
-        phone,
-        name,
-        sessionId: session.id,
-        status,
-      };
+            t.update(userRef, {
+              remainingVisits: remaining - 1,
+              pastSessions: alreadyInPast
+                ? past
+                : [
+                    ...past,
+                    {
+                      sessionId: session.id,
+                      date: session.date,
+                      time: session.time,
+                      createdAt: new Date(),
+                    },
+                  ],
+            });
+          }
 
-      setReservations((prev) => [...prev, newReservation]);
-
-      if (newReservation.status === "rezervirano") {
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === session.id ? { ...s, bookedSlots: s.bookedSlots + 1 } : s
-          )
-        );
-      }
-
-      try {
-        const userSnap2 = await getDocs(
-          query(collection(db, "users"), where("phone", "==", phone))
-        );
-        if (!userSnap2.empty) {
-          const userDoc = userSnap2.docs[0];
-          const userRef = doc(db, "users", userDoc.id);
-          const current = (userDoc.data() as any).remainingVisits ?? 0;
-          const updated = Math.max(-2, current - 1);
-          await updateDoc(userRef, { remainingVisits: updated });
+          return { status };
         }
-      } catch (err) {
-        console.error("❌ Greška pri ažuriranju remainingVisits:", err);
-      }
+      );
 
       setInfoModalMessage(
-        status === "rezervirano" ? (
+        result.status === "rezervirano" ? (
           <>
             ✅ Rezervirali ste termin:
             <br />
@@ -331,91 +276,65 @@ export default function ScheduleCards({
       setShowInfoModal(true);
       onReservationMade();
       fetchData(false);
-    } catch (error) {
-      console.error("⛔ Greška pri upisu rezervacije:", error);
-      onShowPopup("⛔ Greška pri rezervaciji. Pokušajte ponovno.");
+    } catch (err) {
+      console.error("RESERVE ERROR:", err);
+      onShowPopup(
+        `⛔ ${err instanceof Error ? err.message : "Greška pri rezervaciji."}`
+      );
     }
   };
 
   const cancel = async (session: Session) => {
-    if (!phone) return;
+    if (!phone || !userId) return;
 
     const existing = reservations.find(
       (r) => r.phone === phone && r.sessionId === session.id
     );
     if (!existing) return;
 
-    const [d, m, y] = session.date.split(".");
-    const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    const startTime = session.time.split(" - ")[0].trim();
-    const [hours, minutes] = startTime.split(":").map(Number);
-    const sessionDateTime = new Date(dateISO);
-    sessionDateTime.setHours(hours, minutes, 0, 0);
-
-    const now = new Date();
-    const timeDiffHours =
-      (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    const canCancel = timeDiffHours >= 2;
-
     try {
       await runTransaction(db, async (t) => {
-        const sessionRef = doc(db, "sessions", session.id);
-        const sessionSnap = await t.get(sessionRef);
-        const sessionData = sessionSnap.data() as Session;
+        // USER (po userId)
+        const userRef = doc(db, "users", userId);
+        const userSnap = await t.get(userRef);
+        if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
+        const userData = userSnap.data() as any;
 
+        // obriši rezervaciju
         t.delete(doc(db, "reservations", existing.id));
 
-        let newBooked = sessionData.bookedSlots;
+        // ako je bio rezerviran → vrati +1 i makni past
         if (existing.status === "rezervirano") {
-          newBooked = Math.max(0, newBooked - 1);
+          const remaining = Number(userData.remainingVisits ?? 0);
+          const past = Array.isArray(userData.pastSessions)
+            ? userData.pastSessions
+            : [];
 
-          const waitlist = reservations
-            .filter((r) => r.sessionId === session.id && r.status === "cekanje")
-            .sort((a, b) => a.id.localeCompare(b.id));
+          const filtered = past.filter((p: any) => p.sessionId !== session.id);
 
-          if (waitlist.length > 0) {
-            const next = waitlist[0];
-            const nextRef = doc(db, "reservations", next.id);
-            const nextSnap = await t.get(nextRef);
-            const nextData = nextSnap.data() as Reservation;
-
-            if (nextSnap.exists() && nextData.status === "cekanje") {
-              t.update(nextRef, { status: "rezervirano" });
-              newBooked += 1;
-            }
-          }
+          t.update(userRef, {
+            remainingVisits: remaining + 1,
+            pastSessions: filtered,
+          });
         }
-
-        t.update(sessionRef, { bookedSlots: newBooked });
       });
-
-      if (canCancel) {
-        const userSnap = await getDocs(
-          query(collection(db, "users"), where("phone", "==", phone))
-        );
-        if (!userSnap.empty) {
-          const userDoc = userSnap.docs[0];
-          const userRef = doc(db, "users", userDoc.id);
-          const current = (userDoc.data() as any).remainingVisits ?? 0;
-          await updateDoc(userRef, { remainingVisits: current + 1 });
-        }
-      }
 
       setInfoModalMessage(
         <>
-          Otkazali ste termin:
+          ❌ Otkazali ste termin:
           <br />
           {session.date}
           <br />
           {session.time}
         </>
       );
-
       setShowInfoModal(true);
       fetchData(false);
     } catch (err) {
-      console.error("❌ Greška u transakciji otkazivanja:", err);
-      onShowPopup("⛔ Greška pri otkazivanju. Pokušajte ponovno.");
+      console.error("CANCEL ERROR:", err);
+      onShowPopup(
+        `⛔ ${err instanceof Error ? err.message : "Greška pri otkazivanju."}`
+      );
     }
   };
 
@@ -573,7 +492,6 @@ export default function ScheduleCards({
                       </div>
                     ) : null}
 
-                    {}
                     {!reserved && (
                       <button
                         className={`reserve-button ${

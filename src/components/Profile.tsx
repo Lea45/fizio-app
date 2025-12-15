@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import "../styles/profile.css";
 import { FaPhone, FaUser, FaSignOutAlt, FaFolderOpen } from "react-icons/fa";
 
-type HistoryItem = {
-  id: string;
+type PastSessionItem = {
+  sessionId: string;
   date: string;
   time: string;
-  createdAt?: number;
+  createdAt?: any; // Firestore Timestamp ili broj (ovisno kako spremaš)
 };
 
 export default function Profile() {
@@ -23,11 +23,10 @@ export default function Profile() {
   const [noteBody, setNoteBody] = useState("");
   const [showExercisesModal, setShowExercisesModal] = useState(false);
 
-  // ✅ povijest termina
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  // ✅ povijest termina (sad ide iz user doca)
+  const [history, setHistory] = useState<PastSessionItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // ✅ User podatke čitaj po userId (najstabilnije)
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
@@ -40,6 +39,7 @@ export default function Profile() {
         setRemainingVisits(null);
         setNoteTitle("");
         setNoteBody("");
+        setHistory([]);
         return;
       }
 
@@ -49,44 +49,27 @@ export default function Profile() {
       setRemainingVisits(userData.remainingVisits ?? null);
       setNoteTitle(userData.noteTitle || "");
       setNoteBody(userData.noteBody || "");
+
+      const past: PastSessionItem[] = Array.isArray(userData.pastSessions)
+        ? userData.pastSessions
+        : [];
+
+      // sort najnovije prvo (ako postoji createdAt)
+      const toMs = (v: any) => {
+        if (!v) return 0;
+        if (typeof v === "number") return v;
+        if (typeof v?.toMillis === "function") return v.toMillis();
+        return 0;
+      };
+
+      const sorted = [...past].sort(
+        (a, b) => toMs(b.createdAt) - toMs(a.createdAt)
+      );
+      setHistory(sorted);
     });
 
     return () => unsubscribe();
   }, []);
-
-  // Povijest termina ostaje po phone
-  useEffect(() => {
-    if (!phone) return;
-
-    const qHistory = query(
-      collection(db, "reservations"),
-      where("phone", "==", phone),
-      where("status", "==", "rezervirano")
-    );
-
-    const unsubscribe = onSnapshot(qHistory, (snap) => {
-      const items: HistoryItem[] = snap.docs.map((docSnap) => {
-        const data = docSnap.data() as any;
-
-        const createdAtMs =
-          data.createdAt && typeof data.createdAt.toMillis === "function"
-            ? data.createdAt.toMillis()
-            : 0;
-
-        return {
-          id: docSnap.id,
-          date: data.date || data.displayDate || "",
-          time: data.time || "",
-          createdAt: createdAtMs,
-        };
-      });
-
-      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      setHistory(items);
-    });
-
-    return () => unsubscribe();
-  }, [phone]);
 
   const handleLogout = () => {
     localStorage.removeItem("phone");
@@ -129,7 +112,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ✅ GUMB: POGLEDAJ VJEŽBE (iznad povijesti) */}
+      {/* ✅ GUMB: POGLEDAJ VJEŽBE */}
       <button
         className="profile-exercises-button"
         onClick={() => setShowExercisesModal(true)}
@@ -143,7 +126,7 @@ export default function Profile() {
           onClick={() => setShowHistoryModal(true)}
         >
           <FaFolderOpen style={{ marginRight: "6px" }} />
-          Povijest termina
+          Prošli termini
         </button>
 
         <button onClick={handleLogout} className="profile-logout-button">
@@ -152,7 +135,7 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* ✅ POPUP: VJEŽBE (isti stil kao povijest) */}
+      {/* ✅ POPUP: VJEŽBE */}
       {showExercisesModal && (
         <div
           className="profile-history-overlay"
@@ -182,7 +165,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* POVIJEST TERMINA POPUP */}
+      {/* ✅ POPUP: PROŠLI TERMINI (iz users.pastSessions) */}
       {showHistoryModal && (
         <div
           className="profile-history-overlay"
@@ -193,7 +176,7 @@ export default function Profile() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="profile-history-header">
-              <h3>Povijest termina</h3>
+              <h3>Prošli termini</h3>
               <button
                 className="profile-history-close"
                 onClick={() => setShowHistoryModal(false)}
@@ -208,8 +191,11 @@ export default function Profile() {
               </p>
             ) : (
               <div className="profile-history-list">
-                {history.map((h) => (
-                  <div key={h.id} className="profile-history-item">
+                {history.map((h, idx) => (
+                  <div
+                    key={`${h.sessionId}-${idx}`}
+                    className="profile-history-item"
+                  >
                     <div className="history-main">
                       <span className="history-date">{h.date}</span>
                       <span className="history-time">{h.time}</span>
