@@ -1,5 +1,6 @@
 import React from "react";
 import { useEffect, useState } from "react";
+import { arrayUnion, serverTimestamp } from "firebase/firestore";
 
 import AnimatedCollapse from "./AnimatedCollapse";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -226,26 +227,14 @@ export default function ScheduleCards({
             const remaining = Number(userData.remainingVisits ?? 0);
             if (remaining <= 0) throw new Error("Nema dolazaka.");
 
-            const past = Array.isArray(userData.pastSessions)
-              ? userData.pastSessions
-              : [];
-            const alreadyInPast = past.some(
-              (p: any) => p.sessionId === session.id
-            );
-
             t.update(userRef, {
               remainingVisits: remaining - 1,
-              pastSessions: alreadyInPast
-                ? past
-                : [
-                    ...past,
-                    {
-                      sessionId: session.id,
-                      date: session.date,
-                      time: session.time,
-                      createdAt: new Date(),
-                    },
-                  ],
+              pastSessions: arrayUnion({
+                sessionId: session.id,
+                date: session.date,
+                time: session.time,
+                createdAt: new Date(), // ✅ ovo je dopušteno
+              }),
             });
           }
 

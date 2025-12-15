@@ -118,7 +118,8 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
         setBookings((prev) => prev.filter((b) => b.id !== booking.id));
         setInfoModalMessage(
           <>
-            Otkazali ste termin:
+            ❌ Termin otkazan
+            <br />
             <br />
             {booking.date}
             <br />
@@ -126,6 +127,8 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
           </>
         );
         setShowInfoModal(true);
+        setTimeout(() => setShowInfoModal(false), 2000);
+
         return;
       }
 
@@ -181,7 +184,6 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
       setShowInfoModal(true);
 
       // optional: obavijest gore
-      onChanged?.("Termin otkazan.");
     } catch (err) {
       console.error("❌ Greška pri otkazivanju:", err);
     }
