@@ -14,11 +14,13 @@ import {
   where,
   doc,
   deleteDoc,
+  runTransaction,
 } from "firebase/firestore";
 
 type Booking = {
   id: string;
   phone: string;
+  userId?: string; // ✅ dodano (ako postoji u reservation docu)
   sessionId: string;
   date: string;
   time: string;
@@ -34,7 +36,7 @@ function getSessionDateTime(booking: Booking): Date | null {
 
   const [dRaw, mRaw, yRawWithDot] = booking.date.split(".");
   const day = parseInt(dRaw.trim(), 10);
-  const month = parseInt(mRaw.trim(), 10); // 1-12
+  const month = parseInt(mRaw.trim(), 10);
   const year = parseInt(yRawWithDot.replace(/\D/g, "").trim(), 10);
 
   if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
@@ -53,7 +55,7 @@ function getSessionDateTime(booking: Booking): Date | null {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
 
-const MyBookings = ({}: MyBookingsProps) => {
+const MyBookings = ({ onChanged }: MyBookingsProps) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
 
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -63,18 +65,21 @@ const MyBookings = ({}: MyBookingsProps) => {
     useState<Booking | null>(null);
 
   const phone = localStorage.getItem("phone");
+  const userId = localStorage.getItem("userId"); // ✅ koristimo userId
 
   const fetchBookings = async () => {
     if (!phone) return;
 
     setLoading(true);
 
+    // Ako imaš userId u reservations (preporuka), možeš prebaciti na userId upit.
+    // Za sada ostavljam kompatibilno: phone query kao što imaš.
     const q = query(
       collection(db, "reservations"),
       where("phone", "==", phone)
     );
-
     const snap = await getDocs(q);
+
     const fetched = snap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as any),
@@ -103,10 +108,65 @@ const MyBookings = ({}: MyBookingsProps) => {
     fetchBookings();
   }, []);
 
+  // ✅ NOVO: Otkaz koji vraća dolazak i briše iz pastSessions
   const cancelBooking = async (booking: Booking) => {
     try {
-      await deleteDoc(doc(db, "reservations", booking.id));
+      // sigurnost: bez userId ne možemo vratiti dolazak/pastSessions
+      if (!userId) {
+        // fallback: samo obriši rezervaciju (staro ponašanje)
+        await deleteDoc(doc(db, "reservations", booking.id));
+        setBookings((prev) => prev.filter((b) => b.id !== booking.id));
+        setInfoModalMessage(
+          <>
+            Otkazali ste termin:
+            <br />
+            {booking.date}
+            <br />
+            {booking.time}
+          </>
+        );
+        setShowInfoModal(true);
+        return;
+      }
 
+      // provjera 2 sata (ti to već računaš u UI, ali ovdje je dodatna sigurnost)
+      const now = new Date();
+      const sessionDateTime = getSessionDateTime(booking);
+      const timeDiffHours = sessionDateTime
+        ? (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+        : 0;
+
+      const canCancel = !!sessionDateTime && timeDiffHours >= 2;
+
+      await runTransaction(db, async (t) => {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await t.get(userRef);
+        if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
+
+        const userData = userSnap.data() as any;
+
+        // 1) obriši rezervaciju
+        t.delete(doc(db, "reservations", booking.id));
+
+        // 2) ako je rezervirano i smije se otkazati -> vrati dolazak + makni iz pastSessions
+        if (booking.status === "rezervirano" && canCancel) {
+          const remaining = Number(userData.remainingVisits ?? 0);
+
+          const past = Array.isArray(userData.pastSessions)
+            ? userData.pastSessions
+            : [];
+          const filtered = past.filter(
+            (p: any) => p.sessionId !== booking.sessionId
+          );
+
+          t.update(userRef, {
+            remainingVisits: remaining + 1,
+            pastSessions: filtered,
+          });
+        }
+      });
+
+      // lokalno ukloni iz liste bez refetcha
       setBookings((prev) => prev.filter((b) => b.id !== booking.id));
 
       setInfoModalMessage(
@@ -119,6 +179,9 @@ const MyBookings = ({}: MyBookingsProps) => {
         </>
       );
       setShowInfoModal(true);
+
+      // optional: obavijest gore
+      onChanged?.("Termin otkazan.");
     } catch (err) {
       console.error("❌ Greška pri otkazivanju:", err);
     }
@@ -134,7 +197,6 @@ const MyBookings = ({}: MyBookingsProps) => {
 
   return (
     <div className="my-bookings">
-      {}
       {showInfoModal && (
         <ConfirmPopup
           infoOnly
@@ -143,7 +205,6 @@ const MyBookings = ({}: MyBookingsProps) => {
         />
       )}
 
-      {}
       {confirmCancelBooking && (
         <ConfirmPopup
           message={
@@ -184,13 +245,11 @@ const MyBookings = ({}: MyBookingsProps) => {
 
             return (
               <div className="booking-card" key={booking.id}>
-                {}
                 <div className="booking-info">
                   <span className="booking-date">{booking.date}</span>
                   <span className="booking-time">{booking.time}</span>
                 </div>
 
-                {}
                 <div className="booking-status">
                   {booking.status === "rezervirano" ? (
                     <span className="status-tag reserved">
@@ -205,7 +264,6 @@ const MyBookings = ({}: MyBookingsProps) => {
                   )}
                 </div>
 
-                {}
                 <button
                   className="cancel-button booking-full"
                   onClick={() =>
