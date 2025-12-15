@@ -7,6 +7,9 @@ import {
   deleteDoc,
   addDoc,
   doc,
+  onSnapshot,
+  query,
+  orderBy,
   setDoc,
   getDoc,
 } from "firebase/firestore";
@@ -43,14 +46,18 @@ export default function ScheduleAdmin() {
   const [labelInput, setLabelInput] = useState("");
   const [currentLabel, setCurrentLabel] = useState("");
   const [newTime, setNewTime] = useState("");
-  const [newSlots, setNewSlots] = useState(5);
+
+  // ✅ default broj mjesta je 4
+  const [newSlots, setNewSlots] = useState(4);
+
   const [showModal, setShowModal] = useState<string | null>(null);
-  
+
   const [confirmDelete, setConfirmDelete] = useState<{
     id: string;
     date: string;
     time: string;
   } | null>(null);
+
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmPullTemplate, setConfirmPullTemplate] = useState(false);
   const [showMissingLabelModal, setShowMissingLabelModal] = useState(false);
@@ -71,47 +78,93 @@ export default function ScheduleAdmin() {
     setNoteInput("");
   };
 
-  const fetchSessions = async () => {
-    const source =
-      view === "template"
-        ? "defaultSchedule"
-        : view === "draft"
-        ? "draftSchedule"
-        : "sessions";
-
-    const snapshot = await getDocs(collection(db, source));
-    const fetched = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Session[];
-    setSessions(fetched.filter((s) => s.date));
-
+  const fetchReservations = async () => {
     const reservationsSnap = await getDocs(collection(db, "reservations"));
     const allReservations = reservationsSnap.docs.map((d) => d.data());
     setReservations(allReservations);
+  };
 
-    if (view === "draft" || view === "sessions") {
-      const metaDoc = await getDoc(
-        doc(db, view === "draft" ? "draftSchedule" : "sessions", "meta")
-      );
-      if (metaDoc.exists()) {
-        const data = metaDoc.data();
-        if (data.label) setCurrentLabel(data.label);
-      }
+  // ✅ Fetch za draft/sessions (NE template)
+  const fetchSessions = async () => {
+    const source = view === "draft" ? "draftSchedule" : "sessions";
+
+    const snapshot = await getDocs(collection(db, source));
+    const fetched = snapshot.docs.map((docu) => ({
+      id: docu.id,
+      ...docu.data(),
+    })) as Session[];
+    setSessions(fetched.filter((s) => s.date));
+
+    // label meta (za draft/sessions)
+    const metaDoc = await getDoc(doc(db, source, "meta"));
+    if (metaDoc.exists()) {
+      const data = metaDoc.data();
+      if (data.label) setCurrentLabel(data.label);
+    } else {
+      setCurrentLabel("");
     }
 
+    // draft notes
     if (view === "draft") {
       const notesSnap = await getDocs(collection(db, "draftScheduleNotes"));
       const notes: Record<string, string> = {};
-      notesSnap.forEach((doc) => {
-        notes[doc.id] = doc.data().text;
+      notesSnap.forEach((d) => {
+        notes[d.id] = d.data().text;
       });
       setDailyNotes(notes);
+    } else {
+      setDailyNotes({});
     }
   };
 
+  // ✅ Real-time listener SAMO za Defaultni raspored
   useEffect(() => {
+    if (view !== "template") return;
+
+    // u template viewu nema labela
+    setCurrentLabel("");
+
+    const q = query(collection(db, "defaultSchedule"));
+
+
+   const unsubscribe = onSnapshot(q, (snapshot) => {
+  const data = snapshot.docs.map((docu) => ({
+    id: docu.id,
+    ...docu.data(),
+  })) as any[];
+
+  // sort po "date" ili po "day" ovisno što koristiš u defaultSchedule
+  data.sort((a, b) => {
+    // ako je default po danima (PONEDJELJAK...)
+    const days = ["PONEDJELJAK","UTORAK","SRIJEDA","ČETVRTAK","PETAK","SUBOTA","NEDJELJA"];
+    const da = days.indexOf(a.date ?? a.day);
+    const db = days.indexOf(b.date ?? b.day);
+    if (da !== db) return da - db;
+
+    // sort po start vremenu (npr "09:00 - 10:00")
+    const getMin = (t: string) => {
+      const [h, m] = t.split(" - ")[0].split(":").map(Number);
+      return h * 60 + m;
+    };
+    return getMin(a.time) - getMin(b.time);
+  });
+
+  setSessions(data as any[]);
+});
+
+
+    return () => unsubscribe();
+  }, [view]);
+
+  // ✅ Kad nije template, koristi klasični fetch
+  useEffect(() => {
+    if (view === "template") return;
     fetchSessions();
+  }, [view]);
+
+  // ✅ Rezervacije povuci barem jednom (i svaki put kad se promijeni view je ok)
+  useEffect(() => {
+    fetchReservations();
   }, [view]);
 
   const deleteSession = async (id: string) => {
@@ -121,12 +174,18 @@ export default function ScheduleAdmin() {
         : view === "draft"
         ? "draftSchedule"
         : "sessions";
+
     await deleteDoc(doc(db, source, id));
-    fetchSessions();
+
+    // u template viewu onSnapshot će sam osvježiti listu
+    if (view !== "template") {
+      fetchSessions();
+    }
   };
 
   const addSession = async (date: string) => {
     if (!newTime.trim()) return;
+
     let target = "draftSchedule";
     if (view === "template") target = "defaultSchedule";
     else if (view === "sessions") target = "sessions";
@@ -138,10 +197,16 @@ export default function ScheduleAdmin() {
       bookedSlots: 0,
       active: true,
     });
+
     setShowModal(null);
     setNewTime("");
-    setNewSlots(5);
-    fetchSessions();
+    setNewSlots(4); // ✅ reset na 4
+    setAddSessionDate(null);
+
+    // u template viewu onSnapshot će sam povući novi termin
+    if (view !== "template") {
+      fetchSessions();
+    }
   };
 
   const generateWeekFromTemplate = async () => {
@@ -156,7 +221,9 @@ export default function ScheduleAdmin() {
     );
 
     const templateSnap = await getDocs(collection(db, "defaultSchedule"));
-    const templateSessions = templateSnap.docs.map((doc) => doc.data());
+    const templateSessions = templateSnap.docs
+      .filter((d) => d.id !== "meta")
+      .map((d) => d.data());
 
     const danOffset: Record<string, number> = {
       PONEDJELJAK: 0,
@@ -176,7 +243,7 @@ export default function ScheduleAdmin() {
       });
     };
 
-    const updatedSessions = templateSessions.map((session) => {
+    const updatedSessions = templateSessions.map((session: any) => {
       const dan = session.date;
       const offset = danOffset[dan];
       const realDate = new Date(startDate);
@@ -189,7 +256,7 @@ export default function ScheduleAdmin() {
     });
 
     await Promise.all(
-      updatedSessions.map((session) =>
+      updatedSessions.map((session: any) =>
         addDoc(collection(db, "draftSchedule"), session)
       )
     );
@@ -200,7 +267,6 @@ export default function ScheduleAdmin() {
 
     await setDoc(doc(db, "draftSchedule", "meta"), { label });
     setLabelInput(label);
-    await fetchSessions();
 
     setShowModal("✅ Raspored je uspješno generiran prema odabranom tjednu.");
     setView("draft");
@@ -209,13 +275,14 @@ export default function ScheduleAdmin() {
   const publishSchedule = async () => {
     const draftSnap = await getDocs(collection(db, "draftSchedule"));
     const draftTerms = draftSnap.docs
-      .filter((doc) => doc.id !== "meta")
-      .map((doc) => doc.data());
+      .filter((d) => d.id !== "meta")
+      .map((d) => d.data());
 
     const currentSessions = await getDocs(collection(db, "sessions"));
     await Promise.all(
       currentSessions.docs.map((d) => deleteDoc(doc(db, "sessions", d.id)))
     );
+
     await Promise.all(
       draftTerms.map((term) => addDoc(collection(db, "sessions"), term))
     );
@@ -363,7 +430,6 @@ export default function ScheduleAdmin() {
                   setShowMissingLabelModal(true);
                   return;
                 }
-
                 setConfirmPullTemplate(true);
               }}
             >
@@ -394,8 +460,6 @@ export default function ScheduleAdmin() {
         </>
       )}
 
-   
-
       {addSessionDate && (
         <div className="modal-overlay">
           <div className="modal">
@@ -424,10 +488,7 @@ export default function ScheduleAdmin() {
               }}
             />
             <button
-              onClick={() => {
-                addSession(addSessionDate);
-                setAddSessionDate(null);
-              }}
+              onClick={() => addSession(addSessionDate)}
               style={{ marginRight: "0.5rem" }}
             >
               Spremi
@@ -436,7 +497,7 @@ export default function ScheduleAdmin() {
               onClick={() => {
                 setAddSessionDate(null);
                 setNewTime("");
-                setNewSlots(5);
+                setNewSlots(4);
               }}
             >
               Odustani
@@ -562,15 +623,18 @@ export default function ScheduleAdmin() {
 
                 const snapshot = await getDocs(collection(db, source));
                 const sessionsZaDan = snapshot.docs.filter(
-                  (doc) => doc.data().date === confirmDisableDay
+                  (d) => d.data().date === confirmDisableDay
                 );
 
                 await Promise.all(
-                  sessionsZaDan.map((doc) => deleteDoc(doc.ref))
+                  sessionsZaDan.map((d) => deleteDoc(d.ref))
                 );
 
                 setConfirmDisableDay(null);
-                await fetchSessions();
+
+                if (view !== "template") {
+                  await fetchSessions();
+                }
               }}
               style={{
                 marginRight: "0.5rem",
@@ -648,90 +712,84 @@ export default function ScheduleAdmin() {
               );
             } else {
               const da = new Date(a[0].split(".").reverse().join("-"));
-              const db = new Date(b[0].split(".").reverse().join("-"));
-              return da.getTime() - db.getTime();
+              const dbb = new Date(b[0].split(".").reverse().join("-"));
+              return da.getTime() - dbb.getTime();
             }
           })
-          .map(([date, list]) => {
-            return (
-              <div key={date} className="session-group">
-                <h4>{view === "template" ? date : formatDay(date)}</h4>
+          .map(([date, list]) => (
+            <div key={date} className="session-group">
+              <h4>{view === "template" ? date : formatDay(date)}</h4>
 
-                {view === "draft" && (
-                  <>
-                    <button
-                      className="add-button-small note-info"
-                      onClick={() => {
-                        setNoteModalDate(date);
-                        setNoteInput(dailyNotes[date] || "");
-                      }}
-                    >
-                      📝 Dodaj opis
-                    </button>
-
-                    <button
-                      className="add-button-small danger"
-                      onClick={() => {
-                        setConfirmDisableDay(date);
-                      }}
-                    >
-                      🚫 Onemogući dan
-                    </button>
-
-                    {dailyNotes[date] && (
-                      <div className="daily-note-box">
-                        <em>{dailyNotes[date]}</em>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {[...list]
-                  .sort((a, b) => {
-                    const getMinutes = (time: string) => {
-                      const [h, m] = time
-                        .split(" - ")[0]
-                        .split(":")
-                        .map(Number);
-                      return h * 60 + m;
-                    };
-                    return getMinutes(a.time) - getMinutes(b.time);
-                  })
-                  .map((s) => (
-                    <div key={s.id} className="session-item-admin">
-                      <span>
-                        {s.time} ({getBrojRezervacija(s.id)}/{s.maxSlots})
-                      </span>
-
-                      <button
-                        onClick={() =>
-                          setConfirmDelete({
-                            id: s.id,
-                            date: s.date,
-                            time: s.time,
-                          })
-                        }
-                      >
-                        Obriši
-                      </button>
-                    </div>
-                  ))}
-
-                {(view === "draft" ||
-                  view === "template" ||
-                  view === "sessions") && (
+              {view === "draft" && (
+                <>
                   <button
-                    className="add-button-small"
-                    onClick={() => setAddSessionDate(date)}
-                    style={{ marginTop: "0.5rem" }}
+                    className="add-button-small note-info"
+                    onClick={() => {
+                      setNoteModalDate(date);
+                      setNoteInput(dailyNotes[date] || "");
+                    }}
                   >
-                    <FaPlusCircle style={{ marginRight: "0.4rem" }} />
-                    Dodaj termin
+                    📝 Dodaj opis
                   </button>
-                )}
-              </div>
-            );
-          })}
+
+                  <button
+                    className="add-button-small danger"
+                    onClick={() => {
+                      setConfirmDisableDay(date);
+                    }}
+                  >
+                    🚫 Onemogući dan
+                  </button>
+
+                  {dailyNotes[date] && (
+                    <div className="daily-note-box">
+                      <em>{dailyNotes[date]}</em>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {[...list]
+                .sort((a, b) => {
+                  const getMinutes = (time: string) => {
+                    const [h, m] = time
+                      .split(" - ")[0]
+                      .split(":")
+                      .map(Number);
+                    return h * 60 + m;
+                  };
+                  return getMinutes(a.time) - getMinutes(b.time);
+                })
+                .map((s) => (
+                  <div key={s.id} className="session-item-admin">
+                    <span>
+                      {s.time} ({getBrojRezervacija(s.id)}/{s.maxSlots})
+                    </span>
+
+                    <button
+                      onClick={() =>
+                        setConfirmDelete({
+                          id: s.id,
+                          date: s.date,
+                          time: s.time,
+                        })
+                      }
+                    >
+                      Obriši
+                    </button>
+                  </div>
+                ))}
+
+              <button
+                className="add-button-small"
+                onClick={() => setAddSessionDate(date)}
+                style={{ marginTop: "0.5rem" }}
+              >
+                <FaPlusCircle style={{ marginRight: "0.4rem" }} />
+                Dodaj termin
+              </button>
+            </div>
+          ))}
       </div>
     </div>
   );
