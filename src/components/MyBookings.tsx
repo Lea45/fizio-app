@@ -3,24 +3,28 @@ import "../styles/my-bookings.css";
 
 import { FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
 import spinner from "./spinning-dots.svg";
-
 import ConfirmPopup from "./ConfirmPopup";
 
 import { db } from "../firebase";
 import {
   collection,
   getDocs,
+  getDoc,
   query,
   where,
   doc,
-  deleteDoc,
   runTransaction,
+  orderBy,
+  limit,
+  updateDoc,
 } from "firebase/firestore";
+
+import { sendSmsInfobip } from "../utils/infobipSms";
 
 type Booking = {
   id: string;
   phone: string;
-  userId?: string; // ✅ dodano (ako postoji u reservation docu)
+  userId?: string;
   sessionId: string;
   date: string;
   time: string;
@@ -34,158 +38,279 @@ type MyBookingsProps = {
 function getSessionDateTime(booking: Booking): Date | null {
   if (!booking.date || !booking.time) return null;
 
-  const [dRaw, mRaw, yRawWithDot] = booking.date.split(".");
-  const day = parseInt(dRaw.trim(), 10);
-  const month = parseInt(mRaw.trim(), 10);
-  const year = parseInt(yRawWithDot.replace(/\D/g, "").trim(), 10);
+  const [d, m, yRaw] = booking.date.split(".");
+  const day = parseInt(d, 10);
+  const month = parseInt(m, 10);
+  const year = parseInt(yRaw.replace(/\D/g, ""), 10);
 
-  if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
-    return null;
-  }
+  const [start] = booking.time.split(/[-–]/)[0].trim().split(" - ");
+  const [h, min] = start.split(":").map(Number);
 
-  const [startPart] = booking.time.split(" - ");
-  const [hStr, mStr] = startPart.trim().split(":");
-  const hour = parseInt(hStr, 10);
-  const minute = parseInt(mStr, 10);
-
-  if (Number.isNaN(hour) || Number.isNaN(minute)) {
-    return null;
-  }
-
-  return new Date(year, month - 1, day, hour, minute, 0, 0);
+  if ([day, month, year, h, min].some((n) => Number.isNaN(n))) return null;
+  return new Date(year, month - 1, day, h, min, 0, 0);
 }
 
 const MyBookings = ({ onChanged }: MyBookingsProps) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoModalMessage, setInfoModalMessage] = useState<React.ReactNode>("");
-  const [loading, setLoading] = useState(true);
+
   const [confirmCancelBooking, setConfirmCancelBooking] =
     useState<Booking | null>(null);
 
+  const [isWorking, setIsWorking] = useState(false);
+
   const phone = localStorage.getItem("phone");
-  const userId = localStorage.getItem("userId"); // ✅ koristimo userId
+  const userId = localStorage.getItem("userId");
+
+  const showPopup = (msg: React.ReactNode) => {
+    setInfoModalMessage(msg);
+    setShowInfoModal(true);
+    setTimeout(() => setShowInfoModal(false), 2500);
+  };
+
+  // ✅ Promote 1. s čekanja ako ima mjesta (za bilo koga)
+  async function promoteFromWaitlistIfSlotFree(sessionId: string) {
+    try {
+      const sessionRef = doc(db, "sessions", sessionId);
+      const sessionSnap = await getDoc(sessionRef);
+      if (!sessionSnap.exists()) return;
+
+      const sessionData = sessionSnap.data() as any;
+      const maxSlots = Number(sessionData.maxSlots ?? 0);
+      if (!maxSlots) return;
+
+      // prebroji rezervirane
+      const reservedSnap = await getDocs(
+        query(
+          collection(db, "reservations"),
+          where("sessionId", "==", sessionId),
+          where("status", "==", "rezervirano")
+        )
+      );
+      if (reservedSnap.size >= maxSlots) return;
+
+      // uzmi prvog s čekanja (najstariji)
+      const waitingSnap = await getDocs(
+        query(
+          collection(db, "reservations"),
+          where("sessionId", "==", sessionId),
+          where("status", "==", "cekanje"),
+          orderBy("createdAt", "asc"),
+          limit(1)
+        )
+      );
+      if (waitingSnap.empty) return;
+
+      const nextDoc = waitingSnap.docs[0];
+      const nextData = nextDoc.data() as any;
+
+      await updateDoc(doc(db, "reservations", nextDoc.id), {
+        status: "rezervirano",
+        promotedAt: new Date(),
+      });
+
+      if (nextData.phone) {
+        await sendSmsInfobip(
+          nextData.phone,
+          `✅ Oslobodilo se mjesto!\nPrebačeni ste u rezervaciju:\n${nextData.date}\n${nextData.time}`
+        );
+      }
+    } catch (err) {
+      console.error("❌ Promote error:", err);
+    }
+  }
+
+  // ✅ AUTO-PROMOTE za tebe: ako si na čekanju, a ima mjesta → prebaci te odmah
+  async function autoPromoteMeIfPossible(waitingBookings: Booking[]) {
+    if (!phone) return;
+    if (waitingBookings.length === 0) return;
+
+    for (const b of waitingBookings) {
+      try {
+        const sessionRef = doc(db, "sessions", b.sessionId);
+        const sessionSnap = await getDoc(sessionRef);
+        if (!sessionSnap.exists()) continue;
+
+        const sessionData = sessionSnap.data() as any;
+        const maxSlots = Number(sessionData.maxSlots ?? 0);
+        if (!maxSlots) continue;
+
+        // provjeri koliko je rezerviranih
+        const reservedSnap = await getDocs(
+          query(
+            collection(db, "reservations"),
+            where("sessionId", "==", b.sessionId),
+            where("status", "==", "rezervirano")
+          )
+        );
+
+        if (reservedSnap.size >= maxSlots) continue;
+
+        // ima mjesta → pokušaj transakcijski prebaciti TOČNO MOJU rezervaciju
+        const promoted = await runTransaction(db, async (t) => {
+          const myResRef = doc(db, "reservations", b.id);
+          const myResSnap = await t.get(myResRef); // ✅ READ
+
+          if (!myResSnap.exists()) return false;
+          const myResData = myResSnap.data() as any;
+
+          if (myResData.status !== "cekanje") return false;
+          if (String(myResData.phone ?? "") !== String(phone ?? "")) return false;
+
+          // ✅ WRITE
+          t.update(myResRef, { status: "rezervirano", promotedAt: new Date() });
+          return true;
+        });
+
+        if (promoted) {
+          await sendSmsInfobip(
+            b.phone,
+            `✅ Oslobodilo se mjesto!\nPrebačeni ste u rezervaciju:\n${b.date}\n${b.time}`
+          );
+
+          showPopup(
+            <>
+              ✅ Prebačeni ste s liste čekanja u rezervaciju!
+              <br />
+              <br />
+              {b.date}
+              <br />
+              {b.time}
+            </>
+          );
+
+          // refresh local state
+          setBookings((prev) =>
+            prev.map((x) => (x.id === b.id ? { ...x, status: "rezervirano" } : x))
+          );
+
+          // samo jednu promociju po loadu je dosta
+          break;
+        }
+      } catch (e) {
+        console.error("❌ autoPromoteMeIfPossible error:", e);
+      }
+    }
+  }
 
   const fetchBookings = async () => {
     if (!phone) return;
 
     setLoading(true);
 
-    // Ako imaš userId u reservations (preporuka), možeš prebaciti na userId upit.
-    // Za sada ostavljam kompatibilno: phone query kao što imaš.
-    const q = query(
-      collection(db, "reservations"),
-      where("phone", "==", phone)
+    const snap = await getDocs(
+      query(collection(db, "reservations"), where("phone", "==", phone))
     );
-    const snap = await getDocs(q);
-
-    const fetched = snap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as any),
-    })) as Booking[];
 
     const now = new Date();
 
-    const futureOnly = fetched.filter((b) => {
-      const dt = getSessionDateTime(b);
-      if (!dt) return false;
-      return dt.getTime() > now.getTime();
-    });
+    const fetched = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as any) })) as Booking[];
 
-    futureOnly.sort((a, b) => {
-      const da = getSessionDateTime(a);
-      const dbb = getSessionDateTime(b);
-      if (!da || !dbb) return 0;
-      return da.getTime() - dbb.getTime();
-    });
+    // samo budući
+    const future = fetched
+      .filter((b) => {
+        const dt = getSessionDateTime(b);
+        return dt && dt.getTime() > now.getTime();
+      })
+      .sort((a, b) => {
+        const da = getSessionDateTime(a)!;
+        const dbb = getSessionDateTime(b)!;
+        return da.getTime() - dbb.getTime();
+      });
 
-    setBookings(futureOnly);
+    setBookings(future);
     setLoading(false);
+
+    // ✅ nakon load-a probaj auto-promote ako si na čekanju i ima mjesta
+    const waitingMine = future.filter((b) => b.status === "cekanje");
+    await autoPromoteMeIfPossible(waitingMine);
   };
 
   useEffect(() => {
     fetchBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ NOVO: Otkaz koji vraća dolazak i briše iz pastSessions
   const cancelBooking = async (booking: Booking) => {
-    try {
-      // sigurnost: bez userId ne možemo vratiti dolazak/pastSessions
-      if (!userId) {
-        // fallback: samo obriši rezervaciju (staro ponašanje)
-        await deleteDoc(doc(db, "reservations", booking.id));
-        setBookings((prev) => prev.filter((b) => b.id !== booking.id));
-        setInfoModalMessage(
-          <>
-            ❌ Termin otkazan
-            <br />
-            <br />
-            {booking.date}
-            <br />
-            {booking.time}
-          </>
-        );
-        setShowInfoModal(true);
-        setTimeout(() => setShowInfoModal(false), 2000);
+    setIsWorking(true);
 
+    try {
+      const now = new Date();
+      const dt = getSessionDateTime(booking);
+      const diffHours = dt ? (dt.getTime() - now.getTime()) / (1000 * 60 * 60) : -999;
+
+      // ✅ čekanje: uvijek može (dok nije prošlo)
+      // ✅ rezervirano: 2h pravilo
+      const canCancel =
+        !!dt &&
+        dt.getTime() > now.getTime() &&
+        (booking.status === "cekanje" ? true : diffHours >= 2);
+
+      if (!canCancel) {
+        showPopup("⏳ Prekasno za otkazivanje (pravilo 2 sata).");
         return;
       }
 
-      // provjera 2 sata (ti to već računaš u UI, ali ovdje je dodatna sigurnost)
-      const now = new Date();
-      const sessionDateTime = getSessionDateTime(booking);
-      const timeDiffHours = sessionDateTime
-        ? (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-        : 0;
-
-      const canCancel = !!sessionDateTime && timeDiffHours >= 2;
-
       await runTransaction(db, async (t) => {
-        const userRef = doc(db, "users", userId);
-        const userSnap = await t.get(userRef);
-        if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
+        // ✅ READS prvo
+        let userRef: any = null;
+        let userSnap: any = null;
 
-        const userData = userSnap.data() as any;
+        if (userId) {
+          userRef = doc(db, "users", userId);
+          userSnap = await t.get(userRef);
+        }
 
-        // 1) obriši rezervaciju
+        // ✅ WRITES nakon readova
         t.delete(doc(db, "reservations", booking.id));
 
-        // 2) ako je rezervirano i smije se otkazati -> vrati dolazak + makni iz pastSessions
-        if (booking.status === "rezervirano" && canCancel) {
-          const remaining = Number(userData.remainingVisits ?? 0);
+        // vrati dolazak samo za rezervirano
+        if (booking.status === "rezervirano" && userId && userSnap?.exists()) {
+          const data = userSnap.data();
 
-          const past = Array.isArray(userData.pastSessions)
-            ? userData.pastSessions
-            : [];
-          const filtered = past.filter(
+          const past = Array.isArray(data.pastSessions) ? data.pastSessions : [];
+          const filteredPast = past.filter(
             (p: any) => p.sessionId !== booking.sessionId
           );
 
           t.update(userRef, {
-            remainingVisits: remaining + 1,
-            pastSessions: filtered,
+            remainingVisits: Number(data.remainingVisits ?? 0) + 1,
+            pastSessions: filteredPast,
           });
         }
       });
 
-      // lokalno ukloni iz liste bez refetcha
+      // ✅ nakon otkazivanja: promote sljedećeg s čekanja
+      await promoteFromWaitlistIfSlotFree(booking.sessionId);
+
       setBookings((prev) => prev.filter((b) => b.id !== booking.id));
 
-      setInfoModalMessage(
+      showPopup(
         <>
-          Otkazali ste termin:
+          ❌ Termin otkazan
+          <br />
           <br />
           {booking.date}
           <br />
           {booking.time}
         </>
       );
-      setShowInfoModal(true);
-
-      // optional: obavijest gore
-    } catch (err) {
-      console.error("❌ Greška pri otkazivanju:", err);
+      
+    } catch (err: any) {
+      console.error("❌ Cancel error:", err);
+      showPopup(
+        <>
+          ❌ Greška pri otkazivanju
+          <br />
+          <small>{String(err?.message ?? err)}</small>
+        </>
+      );
+    } finally {
+      setIsWorking(false);
     }
   };
 
@@ -218,67 +343,63 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
               {confirmCancelBooking.time}
             </>
           }
-          onConfirm={() => {
-            cancelBooking(confirmCancelBooking);
+          onConfirm={async () => {
+            const b = confirmCancelBooking;
             setConfirmCancelBooking(null);
+            if (b) await cancelBooking(b);
           }}
           onCancel={() => setConfirmCancelBooking(null)}
         />
       )}
 
       {bookings.length === 0 ? (
-        <p className="no-bookings-message">Nemate rezerviranih termina.</p>
+        <p className="no-bookings-message">Nemate aktivnih termina.</p>
       ) : (
         <div className="bookings-list">
-          {bookings.map((booking) => {
+          {bookings.map((b) => {
+            const dt = getSessionDateTime(b);
             const now = new Date();
-            const sessionDateTime = getSessionDateTime(booking);
+            const diffHours = dt ? (dt.getTime() - now.getTime()) / (1000 * 60 * 60) : -999;
 
-            let isPast = false;
-            let timeDiffHours = 0;
-
-            if (sessionDateTime) {
-              isPast = sessionDateTime.getTime() < now.getTime();
-              timeDiffHours =
-                (sessionDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-            }
-
-            const canCancel = !isPast && timeDiffHours >= 2;
+            const canCancel =
+              !!dt &&
+              dt.getTime() > now.getTime() &&
+              (b.status === "cekanje" ? true : diffHours >= 2);
 
             return (
-              <div className="booking-card" key={booking.id}>
+              <div className="booking-card" key={b.id}>
                 <div className="booking-info">
-                  <span className="booking-date">{booking.date}</span>
-                  <span className="booking-time">{booking.time}</span>
+                  <span>{b.date}</span>
+                  <span>{b.time}</span>
                 </div>
 
                 <div className="booking-status">
-                  {booking.status === "rezervirano" ? (
+                  {b.status === "rezervirano" ? (
                     <span className="status-tag reserved">
-                      <FaCheckCircle className="status-icon" />
-                      Rezervirano
+                      <FaCheckCircle /> Rezervirano
                     </span>
                   ) : (
                     <span className="status-tag waiting">
-                      <FaClock className="status-icon" />
-                      Čekanje
+                      <FaClock /> Čekanje
                     </span>
                   )}
                 </div>
 
                 <button
                   className="cancel-button booking-full"
-                  onClick={() =>
-                    canCancel ? setConfirmCancelBooking(booking) : null
-                  }
-                  disabled={!canCancel}
+                  disabled={!canCancel || isWorking}
+                  onClick={() => canCancel && !isWorking && setConfirmCancelBooking(b)}
                   style={{
-                    opacity: canCancel ? 1 : 0.5,
-                    cursor: canCancel ? "pointer" : "not-allowed",
+                    opacity: !canCancel || isWorking ? 0.6 : 1,
+                    cursor: !canCancel || isWorking ? "not-allowed" : "pointer",
                   }}
                 >
-                  <FaTimesCircle className="status-icon" />
-                  {canCancel ? "Otkaži" : "Prekasno za otkazivanje"}
+                  <FaTimesCircle />
+                  {isWorking
+                    ? "Radim..."
+                    : canCancel
+                    ? "Otkaži"
+                    : "Prekasno za otkazivanje"}
                 </button>
               </div>
             );

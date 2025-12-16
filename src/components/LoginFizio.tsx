@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "../firebase";
-import { sendSmsInfobip } from "../utils/infobipSms";
+
 
 type LoginProps = {
   onLoginSuccess: () => void;
@@ -96,24 +96,7 @@ export default function Login({ onLoginSuccess, onBackToHome }: LoginProps) {
           <button type="submit" className="login-button">
             Prijava
           </button>
-          <button
-            type="button"
-            className="login-button"
-            onClick={async () => {
-              try {
-                await sendSmsInfobip(
-                  "+385911529422",
-                  "FIZIO: Lea je, jel radi??"
-                );
-                setStatus("✅ Test SMS poslan.");
-              } catch (e) {
-                console.error(e);
-                setStatus("⛔ Greška pri slanju SMS-a. Pogledaj console.");
-              }
-            }}
-          >
-            TEST SMS
-          </button>
+          
         </form>
 
         {status && (

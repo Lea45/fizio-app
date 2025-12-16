@@ -224,21 +224,21 @@ export default function ScheduleCards({
 
           // Ako je REZERVIRANO → -1 + pastSessions
           if (status === "rezervirano") {
-            const remaining = Number(userData.remainingVisits ?? 0);
-            if (remaining <= 0) throw new Error("Nema dolazaka.");
+  const remaining = Number(userData.remainingVisits ?? 0);
 
-            t.update(userRef, {
-              remainingVisits: remaining - 1,
-              pastSessions: arrayUnion({
-                sessionId: session.id,
-                date: session.date,
-                time: session.time,
-                createdAt: new Date(), // ✅ ovo je dopušteno
-              }),
-            });
-          }
+  t.update(userRef, {
+    remainingVisits: remaining - 1, // ✅ dopušta 0 -> -1 -> -2 ...
+    pastSessions: arrayUnion({
+      sessionId: session.id,
+      date: session.date,
+      time: session.time,
+      createdAt: new Date(),
+    }),
+  });
+}
 
-          return { status };
+return { status };
+
         }
       );
 
