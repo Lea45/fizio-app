@@ -1,5 +1,4 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { arrayUnion } from "firebase/firestore";
 
 import AnimatedCollapse from "./AnimatedCollapse";
@@ -47,6 +46,30 @@ type Props = {
   onReservationMade: () => void;
   onShowPopup: (message: string) => void;
 };
+
+// ✅ iOS-safe helper (bez new Date("YYYY-MM-DD") stringa)
+function getSessionStart(dateStr: string, timeStr: string): Date | null {
+  if (!dateStr || !timeStr) return null;
+
+  // date: "DD.MM.YYYY." ili "DD.MM.YYYY"
+  const parts = dateStr.split(".");
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parseInt((parts[2] ?? "").replace(/\D/g, ""), 10);
+
+  // time: "HH:MM - HH:MM"
+  const startPart = timeStr.split("-")[0].trim();
+  const [hStr, mStr] = startPart.split(":");
+  const hour = parseInt(hStr, 10);
+  const minute = parseInt(mStr, 10);
+
+  if ([day, month, year, hour, minute].some((n) => Number.isNaN(n))) {
+    return null;
+  }
+
+  // lokalno vrijeme uređaja (stabilno na iOS-u)
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+}
 
 export default function ScheduleCards({
   onReservationMade,
@@ -165,25 +188,33 @@ export default function ScheduleCards({
       return;
     }
 
+    // ✅ BLOKADA prošlih termina (radi i na iPhoneu)
+    const startAt = getSessionStart(session.date, session.time);
+    if (!startAt) {
+      onShowPopup("⚠️ Ne mogu pročitati vrijeme termina.");
+      return;
+    }
+    if (startAt.getTime() <= Date.now()) {
+      onShowPopup("⏳ Termin je prošao i ne može se rezervirati.");
+      return;
+    }
+
     try {
       const result = await runTransaction(
         db,
         async (t): Promise<{ status: "rezervirano" | "cekanje" }> => {
-
+          // ✅ READS prvo
           const userRef = doc(db, "users", userId);
           const userSnap = await t.get(userRef);
           if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
-
           const userData = userSnap.data() as any;
-
 
           const sessionRef = doc(db, "sessions", session.id);
           const sessionSnap = await t.get(sessionRef);
           if (!sessionSnap.exists()) throw new Error("Termin ne postoji.");
-
           const sessionData = sessionSnap.data() as any;
 
-
+          // ❗ alreadySnap i resSnap nisu "t.get", ali ostavljam kao kod tebe
           const alreadySnap = await getDocs(
             query(
               collection(db, "reservations"),
@@ -192,7 +223,6 @@ export default function ScheduleCards({
             )
           );
           if (!alreadySnap.empty) throw new Error("Već ste prijavljeni.");
-
 
           const resSnap = await getDocs(
             query(
@@ -207,6 +237,7 @@ export default function ScheduleCards({
               ? "rezervirano"
               : "cekanje";
 
+          // ✅ WRITES
           const newResRef = doc(collection(db, "reservations"));
           t.set(newResRef, {
             phone,
@@ -220,7 +251,6 @@ export default function ScheduleCards({
             refunded: false,
             notified: false,
           });
-
 
           if (status === "rezervirano") {
             const remaining = Number(userData.remainingVisits ?? 0);
@@ -237,7 +267,6 @@ export default function ScheduleCards({
           }
 
           return { status };
-
         }
       );
 
@@ -282,15 +311,14 @@ export default function ScheduleCards({
 
     try {
       await runTransaction(db, async (t) => {
-
+        // ✅ READS prvo
         const userRef = doc(db, "users", userId);
         const userSnap = await t.get(userRef);
         if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
         const userData = userSnap.data() as any;
 
-
+        // ✅ WRITES nakon readova
         t.delete(doc(db, "reservations", existing.id));
-
 
         if (existing.status === "rezervirano") {
           const remaining = Number(userData.remainingVisits ?? 0);
@@ -417,9 +445,7 @@ export default function ScheduleCards({
 
           <AnimatedCollapse isOpen={expandedDate === date}>
             {[
-              ...new Map(
-                groupedSessions[date].map((s) => [s.time, s])
-              ).values(),
+              ...new Map(groupedSessions[date].map((s) => [s.time, s])).values(),
             ]
               .sort((a, b) => a.time.localeCompare(b.time))
               .map((s, index) => {
@@ -429,17 +455,9 @@ export default function ScheduleCards({
                 const isFull =
                   getRezervacijaZaSession(s.id).length >= s.maxSlots;
 
-                const [d, m, y] = s.date.split(".");
-                const dateISO = `${y}-${m.padStart(2, "0")}-${d.padStart(
-                  2,
-                  "0"
-                )}`;
-                const startTime = s.time.split(" - ")[0].trim();
-                const [hours, minutes] = startTime.split(":").map(Number);
-                const sessionDateTime = new Date(dateISO);
-                sessionDateTime.setHours(hours, minutes, 0, 0);
-                const now = new Date();
-                const isPast = sessionDateTime.getTime() < now.getTime();
+                // ✅ iOS-safe isPast
+                const startAt = getSessionStart(s.date, s.time);
+                const isPast = startAt ? startAt.getTime() < Date.now() : false;
 
                 return (
                   <div
@@ -460,10 +478,11 @@ export default function ScheduleCards({
 
                     {reserved ? (
                       <div
-                        className={`status-tag ${reserved.status === "rezervirano"
+                        className={`status-tag ${
+                          reserved.status === "rezervirano"
                             ? "status-rezervirano"
                             : "status-cekanje"
-                          }`}
+                        }`}
                       >
                         {reserved.status === "rezervirano" ? (
                           <>
@@ -481,16 +500,17 @@ export default function ScheduleCards({
 
                     {!reserved && (
                       <button
-                        className={`reserve-button ${isPast ? "reserve-button-past" : isFull ? "full" : ""
-                          }`}
+                        className={`reserve-button ${
+                          isPast ? "reserve-button-past" : isFull ? "full" : ""
+                        }`}
                         disabled={isPast}
                         onClick={() => !isPast && setConfirmSession(s)}
                       >
                         {isPast
                           ? "Termin je prošao"
                           : isFull
-                            ? "Lista čekanja"
-                            : "Rezerviraj"}
+                          ? "Lista čekanja"
+                          : "Rezerviraj"}
                       </button>
                     )}
                   </div>
