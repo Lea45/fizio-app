@@ -1,6 +1,6 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { arrayUnion, serverTimestamp } from "firebase/firestore";
+import { arrayUnion } from "firebase/firestore";
 
 import AnimatedCollapse from "./AnimatedCollapse";
 import { FiChevronDown, FiChevronUp } from "react-icons/fi";
@@ -169,21 +169,21 @@ export default function ScheduleCards({
       const result = await runTransaction(
         db,
         async (t): Promise<{ status: "rezervirano" | "cekanje" }> => {
-          // USER (direktno po userId)
+
           const userRef = doc(db, "users", userId);
           const userSnap = await t.get(userRef);
           if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
 
           const userData = userSnap.data() as any;
 
-          // SESSION
+
           const sessionRef = doc(db, "sessions", session.id);
           const sessionSnap = await t.get(sessionRef);
           if (!sessionSnap.exists()) throw new Error("Termin ne postoji.");
 
           const sessionData = sessionSnap.data() as any;
 
-          // Provjera: već prijavljen?
+
           const alreadySnap = await getDocs(
             query(
               collection(db, "reservations"),
@@ -193,7 +193,7 @@ export default function ScheduleCards({
           );
           if (!alreadySnap.empty) throw new Error("Već ste prijavljeni.");
 
-          // Broj rezerviranih
+
           const resSnap = await getDocs(
             query(
               collection(db, "reservations"),
@@ -207,7 +207,6 @@ export default function ScheduleCards({
               ? "rezervirano"
               : "cekanje";
 
-          // Nova rezervacija
           const newResRef = doc(collection(db, "reservations"));
           t.set(newResRef, {
             phone,
@@ -222,22 +221,22 @@ export default function ScheduleCards({
             notified: false,
           });
 
-          // Ako je REZERVIRANO → -1 + pastSessions
+
           if (status === "rezervirano") {
-  const remaining = Number(userData.remainingVisits ?? 0);
+            const remaining = Number(userData.remainingVisits ?? 0);
 
-  t.update(userRef, {
-    remainingVisits: remaining - 1, // ✅ dopušta 0 -> -1 -> -2 ...
-    pastSessions: arrayUnion({
-      sessionId: session.id,
-      date: session.date,
-      time: session.time,
-      createdAt: new Date(),
-    }),
-  });
-}
+            t.update(userRef, {
+              remainingVisits: remaining - 1,
+              pastSessions: arrayUnion({
+                sessionId: session.id,
+                date: session.date,
+                time: session.time,
+                createdAt: new Date(),
+              }),
+            });
+          }
 
-return { status };
+          return { status };
 
         }
       );
@@ -283,16 +282,16 @@ return { status };
 
     try {
       await runTransaction(db, async (t) => {
-        // USER (po userId)
+
         const userRef = doc(db, "users", userId);
         const userSnap = await t.get(userRef);
         if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
         const userData = userSnap.data() as any;
 
-        // obriši rezervaciju
+
         t.delete(doc(db, "reservations", existing.id));
 
-        // ako je bio rezerviran → vrati +1 i makni past
+
         if (existing.status === "rezervirano") {
           const remaining = Number(userData.remainingVisits ?? 0);
           const past = Array.isArray(userData.pastSessions)
@@ -461,11 +460,10 @@ return { status };
 
                     {reserved ? (
                       <div
-                        className={`status-tag ${
-                          reserved.status === "rezervirano"
+                        className={`status-tag ${reserved.status === "rezervirano"
                             ? "status-rezervirano"
                             : "status-cekanje"
-                        }`}
+                          }`}
                       >
                         {reserved.status === "rezervirano" ? (
                           <>
@@ -483,17 +481,16 @@ return { status };
 
                     {!reserved && (
                       <button
-                        className={`reserve-button ${
-                          isPast ? "reserve-button-past" : isFull ? "full" : ""
-                        }`}
+                        className={`reserve-button ${isPast ? "reserve-button-past" : isFull ? "full" : ""
+                          }`}
                         disabled={isPast}
                         onClick={() => !isPast && setConfirmSession(s)}
                       >
                         {isPast
                           ? "Termin je prošao"
                           : isFull
-                          ? "Lista čekanja"
-                          : "Rezerviraj"}
+                            ? "Lista čekanja"
+                            : "Rezerviraj"}
                       </button>
                     )}
                   </div>

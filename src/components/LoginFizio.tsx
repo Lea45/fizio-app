@@ -12,11 +12,9 @@ export default function Login({ onLoginSuccess, onBackToHome }: LoginProps) {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("");
 
-  // ✅ Najsigurnija normalizacija:
-  // - uzmi samo znamenke
-  // - +385 / 385 / 00385 -> pretvori u 0xxxxxxxxx
+ 
   const normalizePhone = (value: string) => {
-    const digits = value.replace(/\D/g, ""); // samo brojevi
+    const digits = value.replace(/\D/g, "");
 
     if (digits.startsWith("00385")) return "0" + digits.slice(5);
     if (digits.startsWith("385")) return "0" + digits.slice(3);
@@ -39,7 +37,7 @@ export default function Login({ onLoginSuccess, onBackToHome }: LoginProps) {
       const q = query(collection(db, "users"));
       const snap = await getDocs(q);
 
-      // 🔎 Debug (privremeno): vidi što app zapravo uspoređuje
+      
       console.log("LOGIN input:", phone, "=>", inputPhone);
       console.log("USERS count:", snap.size);
 
@@ -59,7 +57,7 @@ export default function Login({ onLoginSuccess, onBackToHome }: LoginProps) {
         setStatus("✅ Uspješna prijava.");
         onLoginSuccess();
       } else {
-        // 🔎 Debug (privremeno): ispiši prvih par brojeva iz baze
+     
         console.log(
           "NO MATCH. First 5 DB phones:",
           snap.docs.slice(0, 5).map((d) => ({

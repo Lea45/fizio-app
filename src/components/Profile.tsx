@@ -8,7 +8,7 @@ type PastSessionItem = {
   sessionId: string;
   date: string;
   time: string;
-  createdAt?: any; // Firestore Timestamp ili broj (ovisno kako spremaš)
+  createdAt?: any;
 };
 
 export default function Profile() {
@@ -18,12 +18,12 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [remainingVisits, setRemainingVisits] = useState<number | null>(null);
 
-  // ✅ vježbe (read-only)
+
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
   const [showExercisesModal, setShowExercisesModal] = useState(false);
 
-  // ✅ povijest termina (sad ide iz user doca)
+
   const [history, setHistory] = useState<PastSessionItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
@@ -54,7 +54,7 @@ export default function Profile() {
         ? userData.pastSessions
         : [];
 
-      // sort najnovije prvo (ako postoji createdAt)
+
       const toMs = (v: any) => {
         if (!v) return 0;
         if (typeof v === "number") return v;
@@ -112,7 +112,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ✅ GUMB: POGLEDAJ VJEŽBE */}
+      { }
       <button
         className="profile-exercises-button"
         onClick={() => setShowExercisesModal(true)}
@@ -135,7 +135,7 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* ✅ POPUP: VJEŽBE */}
+      { }
       {showExercisesModal && (
         <div
           className="profile-history-overlay"
@@ -165,7 +165,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* ✅ POPUP: PROŠLI TERMINI (iz users.pastSessions) */}
+      { }
       {showHistoryModal && (
         <div
           className="profile-history-overlay"

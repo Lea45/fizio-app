@@ -50,7 +50,7 @@ function getSessionDateTime(booking: Booking): Date | null {
   return new Date(year, month - 1, day, h, min, 0, 0);
 }
 
-const MyBookings = ({ onChanged }: MyBookingsProps) => {
+const MyBookings = ({ }: MyBookingsProps) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +71,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
     setTimeout(() => setShowInfoModal(false), 2500);
   };
 
-  // ✅ Promote 1. s čekanja ako ima mjesta (za bilo koga)
+
   async function promoteFromWaitlistIfSlotFree(sessionId: string) {
     try {
       const sessionRef = doc(db, "sessions", sessionId);
@@ -82,7 +82,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
       const maxSlots = Number(sessionData.maxSlots ?? 0);
       if (!maxSlots) return;
 
-      // prebroji rezervirane
+
       const reservedSnap = await getDocs(
         query(
           collection(db, "reservations"),
@@ -92,7 +92,6 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
       );
       if (reservedSnap.size >= maxSlots) return;
 
-      // uzmi prvog s čekanja (najstariji)
       const waitingSnap = await getDocs(
         query(
           collection(db, "reservations"),
@@ -123,7 +122,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
     }
   }
 
-  // ✅ AUTO-PROMOTE za tebe: ako si na čekanju, a ima mjesta → prebaci te odmah
+
   async function autoPromoteMeIfPossible(waitingBookings: Booking[]) {
     if (!phone) return;
     if (waitingBookings.length === 0) return;
@@ -138,7 +137,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
         const maxSlots = Number(sessionData.maxSlots ?? 0);
         if (!maxSlots) continue;
 
-        // provjeri koliko je rezerviranih
+
         const reservedSnap = await getDocs(
           query(
             collection(db, "reservations"),
@@ -149,7 +148,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
 
         if (reservedSnap.size >= maxSlots) continue;
 
-        // ima mjesta → pokušaj transakcijski prebaciti TOČNO MOJU rezervaciju
+
         const promoted = await runTransaction(db, async (t) => {
           const myResRef = doc(db, "reservations", b.id);
           const myResSnap = await t.get(myResRef); // ✅ READ
@@ -160,7 +159,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
           if (myResData.status !== "cekanje") return false;
           if (String(myResData.phone ?? "") !== String(phone ?? "")) return false;
 
-          // ✅ WRITE
+
           t.update(myResRef, { status: "rezervirano", promotedAt: new Date() });
           return true;
         });
@@ -182,12 +181,12 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
             </>
           );
 
-          // refresh local state
+
           setBookings((prev) =>
             prev.map((x) => (x.id === b.id ? { ...x, status: "rezervirano" } : x))
           );
 
-          // samo jednu promociju po loadu je dosta
+
           break;
         }
       } catch (e) {
@@ -210,7 +209,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
     const fetched = snap.docs
       .map((d) => ({ id: d.id, ...(d.data() as any) })) as Booking[];
 
-    // samo budući
+
     const future = fetched
       .filter((b) => {
         const dt = getSessionDateTime(b);
@@ -225,14 +224,14 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
     setBookings(future);
     setLoading(false);
 
-    // ✅ nakon load-a probaj auto-promote ako si na čekanju i ima mjesta
+
     const waitingMine = future.filter((b) => b.status === "cekanje");
     await autoPromoteMeIfPossible(waitingMine);
   };
 
   useEffect(() => {
     fetchBookings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const cancelBooking = async (booking: Booking) => {
@@ -243,8 +242,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
       const dt = getSessionDateTime(booking);
       const diffHours = dt ? (dt.getTime() - now.getTime()) / (1000 * 60 * 60) : -999;
 
-      // ✅ čekanje: uvijek može (dok nije prošlo)
-      // ✅ rezervirano: 2h pravilo
+
       const canCancel =
         !!dt &&
         dt.getTime() > now.getTime() &&
@@ -256,7 +254,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
       }
 
       await runTransaction(db, async (t) => {
-        // ✅ READS prvo
+
         let userRef: any = null;
         let userSnap: any = null;
 
@@ -265,10 +263,10 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
           userSnap = await t.get(userRef);
         }
 
-        // ✅ WRITES nakon readova
+
         t.delete(doc(db, "reservations", booking.id));
 
-        // vrati dolazak samo za rezervirano
+
         if (booking.status === "rezervirano" && userId && userSnap?.exists()) {
           const data = userSnap.data();
 
@@ -284,7 +282,6 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
         }
       });
 
-      // ✅ nakon otkazivanja: promote sljedećeg s čekanja
       await promoteFromWaitlistIfSlotFree(booking.sessionId);
 
       setBookings((prev) => prev.filter((b) => b.id !== booking.id));
@@ -299,7 +296,7 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
           {booking.time}
         </>
       );
-      
+
     } catch (err: any) {
       console.error("❌ Cancel error:", err);
       showPopup(
@@ -398,8 +395,8 @@ const MyBookings = ({ onChanged }: MyBookingsProps) => {
                   {isWorking
                     ? "Radim..."
                     : canCancel
-                    ? "Otkaži"
-                    : "Prekasno za otkazivanje"}
+                      ? "Otkaži"
+                      : "Prekasno za otkazivanje"}
                 </button>
               </div>
             );

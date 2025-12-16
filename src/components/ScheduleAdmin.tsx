@@ -9,7 +9,7 @@ import {
   doc,
   onSnapshot,
   query,
-  orderBy,
+
   setDoc,
   getDoc,
 } from "firebase/firestore";
@@ -47,7 +47,7 @@ export default function ScheduleAdmin() {
   const [currentLabel, setCurrentLabel] = useState("");
   const [newTime, setNewTime] = useState("");
 
-  // ✅ default broj mjesta je 4
+
   const [newSlots, setNewSlots] = useState(4);
 
   const [showModal, setShowModal] = useState<string | null>(null);
@@ -84,7 +84,7 @@ export default function ScheduleAdmin() {
     setReservations(allReservations);
   };
 
-  // ✅ Fetch za draft/sessions (NE template)
+
   const fetchSessions = async () => {
     const source = view === "draft" ? "draftSchedule" : "sessions";
 
@@ -95,7 +95,6 @@ export default function ScheduleAdmin() {
     })) as Session[];
     setSessions(fetched.filter((s) => s.date));
 
-    // label meta (za draft/sessions)
     const metaDoc = await getDoc(doc(db, source, "meta"));
     if (metaDoc.exists()) {
       const data = metaDoc.data();
@@ -104,7 +103,7 @@ export default function ScheduleAdmin() {
       setCurrentLabel("");
     }
 
-    // draft notes
+
     if (view === "draft") {
       const notesSnap = await getDocs(collection(db, "draftScheduleNotes"));
       const notes: Record<string, string> = {};
@@ -117,52 +116,46 @@ export default function ScheduleAdmin() {
     }
   };
 
-  // ✅ Real-time listener SAMO za Defaultni raspored
   useEffect(() => {
     if (view !== "template") return;
 
-    // u template viewu nema labela
     setCurrentLabel("");
 
     const q = query(collection(db, "defaultSchedule"));
 
 
-   const unsubscribe = onSnapshot(q, (snapshot) => {
-  const data = snapshot.docs.map((docu) => ({
-    id: docu.id,
-    ...docu.data(),
-  })) as any[];
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((docu) => ({
+        id: docu.id,
+        ...docu.data(),
+      })) as any[];
 
-  // sort po "date" ili po "day" ovisno što koristiš u defaultSchedule
-  data.sort((a, b) => {
-    // ako je default po danima (PONEDJELJAK...)
-    const days = ["PONEDJELJAK","UTORAK","SRIJEDA","ČETVRTAK","PETAK","SUBOTA","NEDJELJA"];
-    const da = days.indexOf(a.date ?? a.day);
-    const db = days.indexOf(b.date ?? b.day);
-    if (da !== db) return da - db;
+      data.sort((a, b) => {
 
-    // sort po start vremenu (npr "09:00 - 10:00")
-    const getMin = (t: string) => {
-      const [h, m] = t.split(" - ")[0].split(":").map(Number);
-      return h * 60 + m;
-    };
-    return getMin(a.time) - getMin(b.time);
-  });
+        const days = ["PONEDJELJAK", "UTORAK", "SRIJEDA", "ČETVRTAK", "PETAK", "SUBOTA", "NEDJELJA"];
+        const da = days.indexOf(a.date ?? a.day);
+        const db = days.indexOf(b.date ?? b.day);
+        if (da !== db) return da - db;
 
-  setSessions(data as any[]);
-});
+        const getMin = (t: string) => {
+          const [h, m] = t.split(" - ")[0].split(":").map(Number);
+          return h * 60 + m;
+        };
+        return getMin(a.time) - getMin(b.time);
+      });
+
+      setSessions(data as any[]);
+    });
 
 
     return () => unsubscribe();
   }, [view]);
 
-  // ✅ Kad nije template, koristi klasični fetch
   useEffect(() => {
     if (view === "template") return;
     fetchSessions();
   }, [view]);
 
-  // ✅ Rezervacije povuci barem jednom (i svaki put kad se promijeni view je ok)
   useEffect(() => {
     fetchReservations();
   }, [view]);
@@ -172,12 +165,12 @@ export default function ScheduleAdmin() {
       view === "template"
         ? "defaultSchedule"
         : view === "draft"
-        ? "draftSchedule"
-        : "sessions";
+          ? "draftSchedule"
+          : "sessions";
 
     await deleteDoc(doc(db, source, id));
 
-    // u template viewu onSnapshot će sam osvježiti listu
+
     if (view !== "template") {
       fetchSessions();
     }
@@ -200,10 +193,10 @@ export default function ScheduleAdmin() {
 
     setShowModal(null);
     setNewTime("");
-    setNewSlots(4); // ✅ reset na 4
+    setNewSlots(4);
     setAddSessionDate(null);
 
-    // u template viewu onSnapshot će sam povući novi termin
+
     if (view !== "template") {
       fetchSessions();
     }
@@ -401,10 +394,10 @@ export default function ScheduleAdmin() {
                     selected.getDay() === 0
                       ? new Date(selected.setDate(selected.getDate() - 6))
                       : new Date(
-                          selected.setDate(
-                            selected.getDate() - (selected.getDay() - 1)
-                          )
-                        );
+                        selected.setDate(
+                          selected.getDate() - (selected.getDay() - 1)
+                        )
+                      );
 
                   setStartDate(adjustedStart);
 
@@ -618,8 +611,8 @@ export default function ScheduleAdmin() {
                   view === "template"
                     ? "defaultSchedule"
                     : view === "draft"
-                    ? "draftSchedule"
-                    : "sessions";
+                      ? "draftSchedule"
+                      : "sessions";
 
                 const snapshot = await getDocs(collection(db, source));
                 const sessionsZaDan = snapshot.docs.filter(
