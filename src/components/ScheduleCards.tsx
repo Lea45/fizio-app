@@ -145,10 +145,43 @@ export default function ScheduleCards({
         const currentData = waitingDocSnap.data() as any;
         if (currentData.status !== "cekanje") return false;
 
+        // Dohvati korisnika ako ima userId
+        let userRef: any = null;
+        let userData: any = null;
+        if (currentData.userId) {
+          userRef = doc(db, "users", currentData.userId);
+          const userSnap = await t.get(userRef);
+          if (userSnap.exists()) {
+            userData = userSnap.data();
+          }
+        }
+
+        // Prebaci na rezervaciju
         t.update(waitingRef, {
           status: "rezervirano",
           promotedAt: new Date(),
         });
+
+        // Oduzmi dolazak korisniku
+        if (userRef && userData) {
+          const remaining = Number(userData.remainingVisits ?? 0);
+          const pastSessions = Array.isArray(userData.pastSessions)
+            ? userData.pastSessions
+            : [];
+
+          t.update(userRef, {
+            remainingVisits: remaining - 1,
+            pastSessions: [
+              ...pastSessions,
+              {
+                sessionId: sessionId,
+                date: currentData.date,
+                time: currentData.time,
+                createdAt: new Date(),
+              },
+            ],
+          });
+        }
 
         return true;
       });
