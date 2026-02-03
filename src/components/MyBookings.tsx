@@ -14,9 +14,6 @@ import {
   where,
   doc,
   runTransaction,
-  orderBy,
-  limit,
-  updateDoc,
 } from "firebase/firestore";
 
 import { sendSmsInfobip } from "../utils/infobipSms";
@@ -74,44 +71,68 @@ const MyBookings = ({ }: MyBookingsProps) => {
 
   async function promoteFromWaitlistIfSlotFree(sessionId: string) {
     try {
-      const sessionRef = doc(db, "sessions", sessionId);
-      const sessionSnap = await getDoc(sessionRef);
-      if (!sessionSnap.exists()) return;
-
-      const sessionData = sessionSnap.data() as any;
-      const maxSlots = Number(sessionData.maxSlots ?? 0);
-      if (!maxSlots) return;
-
-
-      const reservedSnap = await getDocs(
-        query(
-          collection(db, "reservations"),
-          where("sessionId", "==", sessionId),
-          where("status", "==", "rezervirano")
-        )
-      );
-      if (reservedSnap.size >= maxSlots) return;
-
+      // Dohvati sve s liste čekanja za ovaj termin (bez orderBy - izbjegava indeks)
       const waitingSnap = await getDocs(
         query(
           collection(db, "reservations"),
           where("sessionId", "==", sessionId),
-          where("status", "==", "cekanje"),
-          orderBy("createdAt", "asc"),
-          limit(1)
+          where("status", "==", "cekanje")
         )
       );
       if (waitingSnap.empty) return;
 
-      const nextDoc = waitingSnap.docs[0];
-      const nextData = nextDoc.data() as any;
+      // Sortiraj po createdAt u JS-u i uzmi prvog
+      const sorted = waitingSnap.docs
+        .map((d) => ({ doc: d, data: d.data() as any }))
+        .sort((a, b) => {
+          const aTime = a.data.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.data.createdAt?.toMillis?.() ?? 0;
+          return aTime - bTime;
+        });
 
-      await updateDoc(doc(db, "reservations", nextDoc.id), {
-        status: "rezervirano",
-        promotedAt: new Date(),
+      const nextDoc = sorted[0].doc;
+      const nextData = sorted[0].data;
+
+      // Koristi transakciju za atomsku promociju
+      const promoted = await runTransaction(db, async (t) => {
+        const sessionRef = doc(db, "sessions", sessionId);
+        const sessionSnap = await t.get(sessionRef);
+        if (!sessionSnap.exists()) return false;
+
+        const sessionData = sessionSnap.data() as any;
+        const maxSlots = Number(sessionData.maxSlots ?? 0);
+        if (!maxSlots) return false;
+
+        // Provjeri trenutni broj rezervacija (fresh read unutar transakcije)
+        const reservedSnap = await getDocs(
+          query(
+            collection(db, "reservations"),
+            where("sessionId", "==", sessionId),
+            where("status", "==", "rezervirano")
+          )
+        );
+
+        if (reservedSnap.size >= maxSlots) return false;
+
+        // Provjeri da osoba još uvijek čeka
+        const waitingRef = doc(db, "reservations", nextDoc.id);
+        const waitingDocSnap = await t.get(waitingRef);
+        if (!waitingDocSnap.exists()) return false;
+
+        const currentData = waitingDocSnap.data() as any;
+        if (currentData.status !== "cekanje") return false;
+
+        // Prebaci na rezervaciju
+        t.update(waitingRef, {
+          status: "rezervirano",
+          promotedAt: new Date(),
+        });
+
+        return true;
       });
 
-      if (nextData.phone) {
+      // Ako je promocija uspjela, pošalji SMS
+      if (promoted && nextData.phone) {
         await sendSmsInfobip(
           nextData.phone,
           `✅ Oslobodilo se mjesto!\nPrebačeni ste u rezervaciju:\n${nextData.date}\n${nextData.time}`

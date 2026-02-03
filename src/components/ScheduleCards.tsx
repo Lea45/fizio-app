@@ -14,6 +14,7 @@ import {
   where,
   runTransaction,
 } from "firebase/firestore";
+import { sendSmsInfobip } from "../utils/infobipSms";
 import "../styles/schedule-cards.css";
 import ConfirmPopup from "./ConfirmPopup";
 
@@ -92,6 +93,76 @@ export default function ScheduleCards({
   const phone = localStorage.getItem("phone");
   const name = localStorage.getItem("userName");
   const userId = localStorage.getItem("userId");
+
+  // Promocija s liste čekanja nakon otkazivanja
+  async function promoteFromWaitlistIfSlotFree(sessionId: string) {
+    try {
+      // Dohvati sve s liste čekanja za ovaj termin (bez orderBy - izbjegava indeks)
+      const waitingSnap = await getDocs(
+        query(
+          collection(db, "reservations"),
+          where("sessionId", "==", sessionId),
+          where("status", "==", "cekanje")
+        )
+      );
+      if (waitingSnap.empty) return;
+
+      // Sortiraj po createdAt u JS-u i uzmi prvog
+      const sorted = waitingSnap.docs
+        .map((d) => ({ doc: d, data: d.data() as any }))
+        .sort((a, b) => {
+          const aTime = a.data.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.data.createdAt?.toMillis?.() ?? 0;
+          return aTime - bTime;
+        });
+
+      const nextDoc = sorted[0].doc;
+      const nextData = sorted[0].data;
+
+      const promoted = await runTransaction(db, async (t) => {
+        const sessionRef = doc(db, "sessions", sessionId);
+        const sessionSnap = await t.get(sessionRef);
+        if (!sessionSnap.exists()) return false;
+
+        const sessionData = sessionSnap.data() as any;
+        const maxSlots = Number(sessionData.maxSlots ?? 0);
+        if (!maxSlots) return false;
+
+        const reservedSnap = await getDocs(
+          query(
+            collection(db, "reservations"),
+            where("sessionId", "==", sessionId),
+            where("status", "==", "rezervirano")
+          )
+        );
+
+        if (reservedSnap.size >= maxSlots) return false;
+
+        const waitingRef = doc(db, "reservations", nextDoc.id);
+        const waitingDocSnap = await t.get(waitingRef);
+        if (!waitingDocSnap.exists()) return false;
+
+        const currentData = waitingDocSnap.data() as any;
+        if (currentData.status !== "cekanje") return false;
+
+        t.update(waitingRef, {
+          status: "rezervirano",
+          promotedAt: new Date(),
+        });
+
+        return true;
+      });
+
+      if (promoted && nextData.phone) {
+        await sendSmsInfobip(
+          nextData.phone,
+          `✅ Oslobodilo se mjesto!\nPrebačeni ste u rezervaciju:\n${nextData.date}\n${nextData.time}`
+        );
+      }
+    } catch (err) {
+      console.error("❌ Promote error:", err);
+    }
+  }
 
   const fetchData = async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -334,6 +405,9 @@ export default function ScheduleCards({
           });
         }
       });
+
+      // ✅ Promoviraj prvu osobu s liste čekanja
+      await promoteFromWaitlistIfSlotFree(session.id);
 
       setInfoModalMessage(
         <>
