@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Head -->
+  <circle cx="32" cy="12" r="6" fill="#0ea5e9"/>
+  <!-- Spine / body -->
+  <path d="M32 18 Q30 26 31 32 Q32 38 32 44" stroke="#0ea5e9" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Arms reaching up (therapy/exercise pose) -->
+  <path d="M20 34 Q26 25 32 23 Q38 25 44 34" stroke="#0ea5e9" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <!-- Legs -->
+  <path d="M32 44 L24 57" stroke="#0ea5e9" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M32 44 L40 57" stroke="#0ea5e9" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+</svg>
