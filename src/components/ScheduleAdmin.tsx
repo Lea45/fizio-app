@@ -43,7 +43,7 @@ export default function ScheduleAdmin() {
 
   const [addSessionDate, setAddSessionDate] = useState<string | null>(null);
 
-  const [labelInput, setLabelInput] = useState("");
+  const [, setLabelInput] = useState("");
   const [currentLabel, setCurrentLabel] = useState("");
   const [newTime, setNewTime] = useState("");
 
@@ -62,6 +62,7 @@ export default function ScheduleAdmin() {
   const [confirmPullTemplate, setConfirmPullTemplate] = useState(false);
   const [showMissingLabelModal, setShowMissingLabelModal] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [dailyNotes, setDailyNotes] = useState<Record<string, string>>({});
 
   const [noteModalDate, setNoteModalDate] = useState<string | null>(null);
@@ -203,66 +204,71 @@ export default function ScheduleAdmin() {
   };
 
   const generateWeekFromTemplate = async () => {
-    if (!startDate) {
+    if (!startDate || !endDate) {
       setShowMissingLabelModal(true);
       return;
     }
 
-    const existing = await getDocs(collection(db, "draftSchedule"));
-    await Promise.all(
-      existing.docs.map((d) => deleteDoc(doc(db, "draftSchedule", d.id)))
-    );
+    try {
+      const existing = await getDocs(collection(db, "draftSchedule"));
+      await Promise.all(
+        existing.docs.map((d) => deleteDoc(doc(db, "draftSchedule", d.id)))
+      );
 
-    const templateSnap = await getDocs(collection(db, "defaultSchedule"));
-    const templateSessions = templateSnap.docs
-      .filter((d) => d.id !== "meta")
-      .map((d) => d.data());
+      const templateSnap = await getDocs(collection(db, "defaultSchedule"));
+      const templateSessions = templateSnap.docs
+        .filter((d) => d.id !== "meta")
+        .map((d) => d.data());
 
-    const danOffset: Record<string, number> = {
-      PONEDJELJAK: 0,
-      UTORAK: 1,
-      SRIJEDA: 2,
-      ČETVRTAK: 3,
-      PETAK: 4,
-      SUBOTA: 5,
-      NEDJELJA: 6,
-    };
+      if (templateSessions.length === 0) {
+        setShowModal("⚠️ Defaultni raspored je prazan. Najprije dodaj termine u predložak.");
+        return;
+      }
 
-    const formatDate = (date: Date) => {
-      return date.toLocaleDateString("hr-HR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-    };
-
-    const updatedSessions = templateSessions.map((session: any) => {
-      const dan = session.date;
-      const offset = danOffset[dan];
-      const realDate = new Date(startDate);
-      realDate.setDate(realDate.getDate() + offset);
-
-      return {
-        ...session,
-        date: formatDate(realDate),
+      const danOffset: Record<string, number> = {
+        PONEDJELJAK: 0,
+        UTORAK: 1,
+        SRIJEDA: 2,
+        ČETVRTAK: 3,
+        PETAK: 4,
+        SUBOTA: 5,
+        NEDJELJA: 6,
       };
-    });
 
-    await Promise.all(
-      updatedSessions.map((session: any) =>
-        addDoc(collection(db, "draftSchedule"), session)
-      )
-    );
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString("hr-HR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      };
 
-    const label = `${formatDate(startDate)} - ${formatDate(
-      new Date(startDate.getTime() + 6 * 86400000)
-    )}`;
+      const updatedSessions = templateSessions.map((session: any) => {
+        const dan = session.date;
+        const offset = danOffset[dan] ?? 0;
+        const realDate = new Date(startDate);
+        realDate.setDate(realDate.getDate() + offset);
+        return { ...session, date: formatDate(realDate) };
+      });
 
-    await setDoc(doc(db, "draftSchedule", "meta"), { label });
-    setLabelInput(label);
+      await Promise.all(
+        updatedSessions.map((session: any) =>
+          addDoc(collection(db, "draftSchedule"), session)
+        )
+      );
 
-    setShowModal("✅ Raspored je uspješno generiran prema odabranom tjednu.");
-    setView("draft");
+      const label = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+      await setDoc(doc(db, "draftSchedule", "meta"), { label });
+      setLabelInput(label);
+      setCurrentLabel(label);
+
+      setShowModal("✅ Raspored je uspješno generiran prema odabranom tjednu.");
+      setView("draft");
+      await fetchSessions();
+    } catch (err) {
+      console.error("generateWeekFromTemplate error:", err);
+      setShowModal("⛔ Greška pri generiranju rasporeda. Provjeri konzolu.");
+    }
   };
 
   const publishSchedule = async () => {
@@ -381,33 +387,15 @@ export default function ScheduleAdmin() {
                   fontFamily: "monospace",
                 }}
               >
-                Tjedan od-do
+                Od
               </label>
               <DatePicker
                 selected={startDate}
                 onChange={(selectedDate) => {
                   if (!selectedDate) return;
-
-                  const selected = new Date(selectedDate);
-
-                  const adjustedStart =
-                    selected.getDay() === 0
-                      ? new Date(selected.setDate(selected.getDate() - 6))
-                      : new Date(
-                        selected.setDate(
-                          selected.getDate() - (selected.getDay() - 1)
-                        )
-                      );
-
-                  setStartDate(adjustedStart);
-
-                  const end = new Date(adjustedStart);
-                  end.setDate(adjustedStart.getDate() + 6);
-
-                  const label = `${adjustedStart.toLocaleDateString(
-                    "hr-HR"
-                  )} - ${end.toLocaleDateString("hr-HR")}`;
-                  setLabelInput(label);
+                  setStartDate(selectedDate);
+                  setEndDate(null);
+                  setLabelInput("");
                 }}
                 dateFormat="dd.MM.yyyy"
                 placeholderText="Odaberite datum"
@@ -416,10 +404,38 @@ export default function ScheduleAdmin() {
               />
             </div>
 
+            {startDate && (
+              <div className="week-datepicker-wrapper">
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  Do
+                </label>
+                <DatePicker
+                  selected={endDate}
+                  onChange={(selectedDate) => {
+                    if (!selectedDate) return;
+                    setEndDate(selectedDate);
+                    const label = `${startDate.toLocaleDateString("hr-HR")} - ${selectedDate.toLocaleDateString("hr-HR")}`;
+                    setLabelInput(label);
+                  }}
+                  minDate={startDate}
+                  dateFormat="dd.MM.yyyy"
+                  placeholderText="Odaberite datum"
+                  calendarStartDay={1}
+                  className="week-label-input"
+                />
+              </div>
+            )}
+
             <button
               className="generate-button"
               onClick={() => {
-                if (!labelInput.trim()) {
+                if (!startDate || !endDate) {
                   setShowMissingLabelModal(true);
                   return;
                 }

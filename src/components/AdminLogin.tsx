@@ -58,8 +58,8 @@ export default function AdminLogin({
       // OVO su podaci admin usera kojeg si kreirala u Firebase Authentication
       await signInWithEmailAndPassword(
         auth,
-        "varzic.lea@gmail.com", // <-- promijeni na svoj admin email
-        "141209" // <-- promijeni na password iz Auth
+        import.meta.env.VITE_FIREBASE_ADMIN_EMAIL,
+        import.meta.env.VITE_FIREBASE_ADMIN_PASSWORD
       );
 
       // ✅ 2) (opcionalno) zadrži tvoj localStorage gate, ali sad nije sigurnost nego UI pomoć

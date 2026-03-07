@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Admin je jedini koji ima Firebase Auth login
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // defaultSchedule - samo admin
+    match /defaultSchedule/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // draftSchedule - samo admin
+    match /draftSchedule/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // draftScheduleNotes - samo admin
+    match /draftScheduleNotes/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // sessions - svi čitaju, samo admin piše
+    match /sessions/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // sessionsNotes - svi čitaju, samo admin piše
+    match /sessionsNotes/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // reservations - svi čitaju i pišu (klijenti rezerviraju)
+    match /reservations/{docId} {
+      allow read, write: if true;
+    }
+
+    // users - svi čitaju (login po telefonu), samo admin piše
+    match /users/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // adminLogin (PIN) - svi čitaju, samo admin piše
+    match /adminLogin/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
