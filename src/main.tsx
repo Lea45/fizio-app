@@ -10,6 +10,7 @@ if ("serviceWorker" in navigator) {
       .register("/sw.js")
       .catch((err) => console.log("Service Worker error:", err));
   });
+
 }
 
 

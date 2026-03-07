@@ -51,5 +51,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // appConfig - svi čitaju (za update baner), samo admin piše
+    match /appConfig/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
