@@ -299,6 +299,14 @@ export default function ScheduleAdmin() {
       )
     );
 
+    const metaDoc = await getDoc(doc(db, "draftSchedule", "meta"));
+    if (metaDoc.exists()) {
+      const label = (metaDoc.data() as any).label;
+      if (label) {
+        await setDoc(doc(db, "appConfig", "scheduleLabel"), { label });
+      }
+    }
+
     setShowModal("✅ Novi tjedan je uspješno objavljen.");
     setView("sessions");
   };

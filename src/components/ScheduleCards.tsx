@@ -200,37 +200,42 @@ export default function ScheduleCards({
   const fetchData = async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
 
-    const sessionsSnap = await getDocs(collection(db, "sessions"));
-    const reservationsSnap = await getDocs(collection(db, "reservations"));
-    const metaDoc = await getDoc(doc(db, "draftSchedule", "meta"));
+    try {
+      const sessionsSnap = await getDocs(collection(db, "sessions"));
+      const reservationsSnap = await getDocs(collection(db, "reservations"));
 
-    const notesSnap = await getDocs(collection(db, "sessionsNotes"));
-    const notes: Record<string, string> = {};
-    notesSnap.forEach((d) => {
-      notes[d.id] = (d.data() as any).text;
-    });
-    setDailyNotes(notes);
+      const notesSnap = await getDocs(collection(db, "sessionsNotes"));
+      const notes: Record<string, string> = {};
+      notesSnap.forEach((d) => {
+        notes[d.id] = (d.data() as any).text;
+      });
+      setDailyNotes(notes);
 
-    const fetchedSessions = sessionsSnap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as any),
-    })) as Session[];
+      const fetchedSessions = sessionsSnap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      })) as Session[];
 
-    const fetchedReservations = reservationsSnap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as any),
-    })) as Reservation[];
+      const fetchedReservations = reservationsSnap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      })) as Reservation[];
 
-    setSessions(fetchedSessions);
-    setReservations(fetchedReservations);
+      setSessions(fetchedSessions);
+      setReservations(fetchedReservations);
 
-    if (metaDoc.exists()) {
-      const data = metaDoc.data() as any;
-      if (data.label) setLabel(data.label);
+      // Label iz javne kolekcije
+      const metaDoc = await getDoc(doc(db, "appConfig", "scheduleLabel"));
+      if (metaDoc.exists()) {
+        const data = metaDoc.data() as any;
+        if (data.label) setLabel(data.label);
+      }
+    } catch (err) {
+      console.error("fetchData error:", err);
+    } finally {
+      if (showSpinner) setLoading(false);
+      setInitialLoad(false);
     }
-
-    if (showSpinner) setLoading(false);
-    setInitialLoad(false);
   };
 
   useEffect(() => {

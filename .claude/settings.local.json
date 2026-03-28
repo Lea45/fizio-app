@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(firebase deploy --only hosting,firestore:rules)",
+      "Bash(firebase deploy --only firestore:rules)",
+      "Bash(firebase deploy --only hosting)"
+    ]
+  }
+}
