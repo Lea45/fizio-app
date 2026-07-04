@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
+import AdminMeasurements from "./AdminMeasurements";
 import {
   collection,
   addDoc,
@@ -16,6 +17,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import "../styles/user-management.css";
+import { normalizePhone } from "../utils/normalizePhone";
 
 interface User {
   id: string;
@@ -55,6 +57,7 @@ export default function UserManagement() {
   const [hasMore, setHasMore] = useState(true);
 
   const [showAddOptions, setShowAddOptions] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState(false);
   const [showNoteEditor, setShowNoteEditor] = useState(false);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteBody, setNoteBody] = useState("");
@@ -155,6 +158,7 @@ export default function UserManagement() {
     await addDoc(collection(db, "users"), {
       name: newUserName.trim(),
       phone: newUserPhone.trim(),
+      phoneNormalized: normalizePhone(newUserPhone.trim()),
       remainingVisits: 0,
       validUntil: "",
       noteTitle: "",
@@ -193,6 +197,7 @@ export default function UserManagement() {
     setNoteBody(data?.noteBody ?? "");
     setShowNoteEditor(false);
     setConfirmDeleteNote(false);
+    setShowMeasurements(false);
   };
 
   const handleConfirmEntry = async () => {
@@ -468,6 +473,14 @@ export default function UserManagement() {
                     ? "Uredi opis"
                     : "Dodaj opis"}
                 </button>
+
+                <button
+                  type="button"
+                  className="user-btn user-btn-secondary"
+                  onClick={() => setShowMeasurements(true)}
+                >
+                  Mjerenja
+                </button>
               </div>
 
               {!showNoteEditor && selectedUser.noteBody?.trim() && (
@@ -646,6 +659,14 @@ export default function UserManagement() {
             </div>
           </div>
         </div>
+      )}
+
+      {showMeasurements && selectedUser && (
+        <AdminMeasurements
+          userId={selectedUser.id}
+          userName={selectedUser.name}
+          onClose={() => setShowMeasurements(false)}
+        />
       )}
 
       {showSuccess && (

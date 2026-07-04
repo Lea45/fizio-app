@@ -13,6 +13,7 @@ import {
   query,
   where,
   runTransaction,
+  onSnapshot,
 } from "firebase/firestore";
 import { sendSmsInfobip } from "../utils/infobipSms";
 import "../styles/schedule-cards.css";
@@ -197,55 +198,62 @@ export default function ScheduleCards({
     }
   }
 
-  const fetchData = async (showSpinner = true) => {
-    if (showSpinner) setLoading(true);
-
+  // Jednokratno dohvaćanje label-a i bilješki (rijetko se mijenjaju)
+  const fetchStaticData = async () => {
     try {
-      const sessionsSnap = await getDocs(collection(db, "sessions"));
-      const reservationsSnap = await getDocs(collection(db, "reservations"));
+      const [notesSnap, metaDoc] = await Promise.all([
+        getDocs(collection(db, "sessionsNotes")),
+        getDoc(doc(db, "appConfig", "scheduleLabel")),
+      ]);
 
-      const notesSnap = await getDocs(collection(db, "sessionsNotes"));
       const notes: Record<string, string> = {};
       notesSnap.forEach((d) => {
         notes[d.id] = (d.data() as any).text;
       });
       setDailyNotes(notes);
 
-      const fetchedSessions = sessionsSnap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
-      })) as Session[];
-
-      const fetchedReservations = reservationsSnap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as any),
-      })) as Reservation[];
-
-      setSessions(fetchedSessions);
-      setReservations(fetchedReservations);
-
-      // Label iz javne kolekcije
-      const metaDoc = await getDoc(doc(db, "appConfig", "scheduleLabel"));
       if (metaDoc.exists()) {
         const data = metaDoc.data() as any;
         if (data.label) setLabel(data.label);
       }
     } catch (err) {
-      console.error("fetchData error:", err);
-    } finally {
-      if (showSpinner) setLoading(false);
-      setInitialLoad(false);
+      console.error("fetchStaticData error:", err);
     }
   };
 
   useEffect(() => {
-    fetchData(true);
+    fetchStaticData();
 
-    const interval = setInterval(() => {
-      fetchData(false);
-    }, 20000);
+    // onSnapshot za sessions — prima samo promjene, ne puni polling
+    const unsubSessions = onSnapshot(collection(db, "sessions"), (snap) => {
+      const fetched = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      })) as Session[];
+      setSessions(fetched);
+      setLoading(false);
+      setInitialLoad(false);
+    }, (err) => {
+      console.error("sessions snapshot error:", err);
+      setLoading(false);
+      setInitialLoad(false);
+    });
 
-    return () => clearInterval(interval);
+    // onSnapshot za reservations — prima samo promjene, ne puni polling
+    const unsubReservations = onSnapshot(collection(db, "reservations"), (snap) => {
+      const fetched = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      })) as Reservation[];
+      setReservations(fetched);
+    }, (err) => {
+      console.error("reservations snapshot error:", err);
+    });
+
+    return () => {
+      unsubSessions();
+      unsubReservations();
+    };
   }, []);
 
   const getDayName = (dateStr: string) => {
@@ -297,7 +305,6 @@ export default function ScheduleCards({
       return;
     }
 
-    // ✅ BLOKADA prošlih termina (radi i na iPhoneu)
     const startAt = getSessionStart(session.date, session.time);
     if (!startAt) {
       onShowPopup("⚠️ Ne mogu pročitati vrijeme termina.");
@@ -309,10 +316,29 @@ export default function ScheduleCards({
     }
 
     try {
+      // Provjere se rade VAN transakcije (bez retryja = manje čitanja)
+      const [alreadySnap, resSnap] = await Promise.all([
+        getDocs(query(
+          collection(db, "reservations"),
+          where("sessionId", "==", session.id),
+          where("phone", "==", phone)
+        )),
+        getDocs(query(
+          collection(db, "reservations"),
+          where("sessionId", "==", session.id),
+          where("status", "==", "rezervirano")
+        )),
+      ]);
+
+      if (!alreadySnap.empty) {
+        onShowPopup("⛔ Već ste prijavljeni na ovaj termin.");
+        return;
+      }
+
       const result = await runTransaction(
         db,
         async (t): Promise<{ status: "rezervirano" | "cekanje" }> => {
-          // ✅ READS prvo
+          // Samo document reads unutar transakcije (podržano)
           const userRef = doc(db, "users", userId);
           const userSnap = await t.get(userRef);
           if (!userSnap.exists()) throw new Error("Korisnik ne postoji.");
@@ -323,30 +349,12 @@ export default function ScheduleCards({
           if (!sessionSnap.exists()) throw new Error("Termin ne postoji.");
           const sessionData = sessionSnap.data() as any;
 
-          // ❗ alreadySnap i resSnap nisu "t.get", ali ostavljam kao kod tebe
-          const alreadySnap = await getDocs(
-            query(
-              collection(db, "reservations"),
-              where("sessionId", "==", session.id),
-              where("phone", "==", phone)
-            )
-          );
-          if (!alreadySnap.empty) throw new Error("Već ste prijavljeni.");
-
-          const resSnap = await getDocs(
-            query(
-              collection(db, "reservations"),
-              where("sessionId", "==", session.id),
-              where("status", "==", "rezervirano")
-            )
-          );
-
+          // Koristimo pre-fetched resSnap za određivanje statusa
           const status: "rezervirano" | "cekanje" =
             resSnap.size < Number(sessionData.maxSlots ?? 0)
               ? "rezervirano"
               : "cekanje";
 
-          // ✅ WRITES
           const newResRef = doc(collection(db, "reservations"));
           t.set(newResRef, {
             phone,
@@ -401,7 +409,6 @@ export default function ScheduleCards({
 
       setShowInfoModal(true);
       onReservationMade();
-      fetchData(false);
     } catch (err) {
       console.error("RESERVE ERROR:", err);
       onShowPopup(
@@ -457,7 +464,6 @@ export default function ScheduleCards({
         </>
       );
       setShowInfoModal(true);
-      fetchData(false);
     } catch (err) {
       console.error("CANCEL ERROR:", err);
       onShowPopup(
@@ -527,10 +533,7 @@ export default function ScheduleCards({
       {showInfoModal && (
         <ConfirmPopup
           message={infoModalMessage}
-          onCancel={() => {
-            setShowInfoModal(false);
-            fetchData();
-          }}
+          onCancel={() => setShowInfoModal(false)}
           infoOnly
         />
       )}

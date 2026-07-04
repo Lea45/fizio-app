@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../firebase";
+import { normalizePhone } from "../utils/normalizePhone";
 
 
 type LoginProps = {
@@ -11,16 +12,6 @@ type LoginProps = {
 export default function Login({ onLoginSuccess, onBackToHome }: LoginProps) {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("");
-
- 
-  const normalizePhone = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-
-    if (digits.startsWith("00385")) return "0" + digits.slice(5);
-    if (digits.startsWith("385")) return "0" + digits.slice(3);
-
-    return digits;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,38 +25,33 @@ export default function Login({ onLoginSuccess, onBackToHome }: LoginProps) {
     const inputPhone = normalizePhone(phone);
 
     try {
-      const q = query(collection(db, "users"));
-      const snap = await getDocs(q);
+      // Brzi put: query po phoneNormalized (1 čitanje umjesto svih korisnika)
+      let matchDoc: any = null;
+      const fastSnap = await getDocs(
+        query(collection(db, "users"), where("phoneNormalized", "==", inputPhone))
+      );
 
-      
-      console.log("LOGIN input:", phone, "=>", inputPhone);
-      console.log("USERS count:", snap.size);
+      if (!fastSnap.empty) {
+        matchDoc = fastSnap.docs[0];
+      } else {
+        // Fallback za stare korisnike bez phoneNormalized polja
+        const allSnap = await getDocs(collection(db, "users"));
+        matchDoc = allSnap.docs.find((d) => {
+          const raw = (d.data() as any).phone || "";
+          return normalizePhone(String(raw)) === inputPhone;
+        }) ?? null;
+      }
 
-      const match = snap.docs.find((d) => {
-        const raw = (d.data() as any).phone || "";
-        const dbPhone = normalizePhone(String(raw));
-        return dbPhone === inputPhone;
-      });
-
-      if (match) {
-        const userData = match.data() as any;
+      if (matchDoc) {
+        const userData = matchDoc.data() as any;
 
         localStorage.setItem("phone", inputPhone);
-        localStorage.setItem("userId", match.id);
+        localStorage.setItem("userId", matchDoc.id);
         if (userData?.name) localStorage.setItem("userName", userData.name);
 
         setStatus("✅ Uspješna prijava.");
         onLoginSuccess();
       } else {
-     
-        console.log(
-          "NO MATCH. First 5 DB phones:",
-          snap.docs.slice(0, 5).map((d) => ({
-            raw: (d.data() as any).phone,
-            normalized: normalizePhone(String((d.data() as any).phone || "")),
-          }))
-        );
-
         setStatus("⛔ Nemaš pristup.");
       }
     } catch (error) {

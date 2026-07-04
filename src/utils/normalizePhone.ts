@@ -1,8 +1,7 @@
 export function normalizePhone(input: string): string {
   if (!input) return "";
-  let phone = input.replace(/\s+/g, "").replace(/^(\+385)/, "0");
-  if (!phone.startsWith("0") && phone.length === 8) {
-    phone = "0" + phone;
-  }
-  return phone;
+  const digits = String(input).replace(/\D/g, "");
+  if (digits.startsWith("00385")) return "0" + digits.slice(5);
+  if (digits.startsWith("385")) return "0" + digits.slice(3);
+  return digits;
 }

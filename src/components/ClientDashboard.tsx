@@ -2,10 +2,11 @@ import { useState } from "react";
 import Schedule from "./Schedule";
 import MyBookings from "./MyBookings";
 import Profile from "./Profile";
+import Rang from "./Rang";
 import "../styles/client-dashboard.css";
-import { FaCalendarAlt, FaUser } from "react-icons/fa";
+import { FaCalendarAlt, FaUser, FaTrophy } from "react-icons/fa";
 
-type Tab = "raspored" | "moji-termini" | "profil";
+type Tab = "raspored" | "moji-termini" | "profil" | "rang";
 
 export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("raspored");
@@ -33,6 +34,8 @@ export default function ClientDashboard() {
         );
       case "profil":
         return <Profile />;
+      case "rang":
+        return <Rang />;
       default:
         return null;
     }
@@ -62,6 +65,13 @@ export default function ClientDashboard() {
           onClick={() => setActiveTab("profil")}
         >
           <FaUser /> Profil
+        </button>
+
+        <button
+          className={`tab-button ${activeTab === "rang" ? "active" : ""}`}
+          onClick={() => setActiveTab("rang")}
+        >
+          <FaTrophy /> Rang
         </button>
       </div>
 

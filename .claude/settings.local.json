@@ -4,7 +4,8 @@
       "Bash(npm run build)",
       "Bash(firebase deploy --only hosting,firestore:rules)",
       "Bash(firebase deploy --only firestore:rules)",
-      "Bash(firebase deploy --only hosting)"
+      "Bash(firebase deploy --only hosting)",
+      "Bash(npx tsc *)"
     ]
   }
 }
